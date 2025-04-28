@@ -3,7 +3,7 @@
 **Version**: 1.0  
 **Application**: AuthMini V1  
 **Repository**: [https://github.com/voilacode/authmini](https://github.com/voilacode/authmini)  
-**Purpose**: This document serves as a comprehensive technical reference for developers and LLMs, ensuring code consistency, integrity, and clear system understanding for AuthMini V1, a minimal full-stack authentication app. It includes a detailed project introduction, user roles, user flows, database schema, API reference, system architecture, file details, testing guidelines, coding standards, and LLM guidelines, optimized for developers maintaining the app and LLMs generating uniform code within small context windows.
+**Purpose**: This document serves as a comprehensive technical reference for developers and LLMs, ensuring code consistency, integrity, and clear system understanding for AuthMini V1, a minimal full-stack authentication app. It includes a detailed project introduction, user roles, user flows, database schema, API reference, system architecture, file details, testing guidelines, coding standards, and LLM guidelines, optimized for developers maintaining the app and LLMs generating uniform code within small context window.
 
 ## Table of Contents
 
