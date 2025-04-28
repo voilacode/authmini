@@ -1,0 +1,21 @@
+/* frontend/css/styles.css */
+.form-container {
+    background-color: #4b5563; /* Tailwind's bg-gray-700 */
+    padding: 2rem; /* Tailwind's p-8 */
+    border-radius: 0.5rem; /* Tailwind's rounded-lg */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); /* Tailwind's shadow-lg */
+    max-width: 28rem; /* Tailwind's max-w-md */
+    width: 100%; /* Tailwind's w-full */
+    color: #ffffff; /* Tailwind's text-white */
+  }
+  
+  .btn-primary {
+    background-color: #374151; /* Tailwind's bg-gray-600 */
+    color: #ffffff; /* Tailwind's text-white */
+    padding: 0.5rem 1rem; /* Tailwind's px-4 py-2 */
+    border-radius: 0.375rem; /* Tailwind's rounded-md */
+  }
+  
+  .btn-primary:hover {
+    background-color: #6b7280; /* Tailwind's bg-gray-500 */
+  }
