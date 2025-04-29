@@ -134,10 +134,10 @@ Key user interactions in AuthMini V1.
 
 Placeholder links for user flow diagrams (to be added later):
 
-- **User Registration Flow**: [Placeholder - Registration Diagram]()
-- **User Login and Dashboard Flow**: [Placeholder - Login Diagram]()
-- **Admin Login and User List Flow**: [Placeholder - Admin Diagram]()
-- **Logout Flow**: [Placeholder - Logout Diagram]()
+- **User Registration Flow**: [Registration Diagram](https://i.ibb.co/JwDRJrmQ/user-registration.png)
+- **User Login and Dashboard Flow**: [Login Diagram](https://i.ibb.co/Cpn1SC46/user-login.png)
+- **Admin Login and User List Flow**: [Admin Diagram](https://i.ibb.co/Qj9887TN/admin-login.png)
+- **Logout Flow**: [Logout Diagram](https://i.ibb.co/k2t2g9zC/user-logout.png)
 
 ### Notes
 
