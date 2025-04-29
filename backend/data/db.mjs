@@ -27,7 +27,7 @@ export function initDb() {
     );
   `);
 
-  // Seed admin user
+  // Seed admin user if not exists
   const adminExists = db
     .prepare('SELECT id FROM users WHERE email = ?')
     .get('admin@example.com');

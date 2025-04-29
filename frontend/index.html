@@ -13,8 +13,8 @@
   <div x-show="!user" class="form-container">
     <div x-data="authComponent()">
       <h2 class="text-2xl font-bold mb-4 text-white">AuthMini Login / Register</h2>
-      <input x-model="email" type="email" placeholder="Email" class="text-gray-800 w-full p-2 mb-4 rounded">
-      <input x-model="password" type="password" placeholder="Password" class="text-gray-800 w-full p-2 mb-4 rounded">
+      <input x-model="email" type="email" placeholder="Email" class="w-full text-gray-700 p-2 mb-4 rounded">
+      <input x-model="password" type="password" placeholder="Password" class="w-full text-gray-700 p-2 mb-4 rounded">
       <button @click="submit('register')" class="btn-primary">Register</button>
       <button @click="submit('login')" class="btn-primary ml-2">Login</button>
       <p x-text="error" class="text-red-500 mt-2"></p>
@@ -39,7 +39,6 @@
     <button @click="logout()" class="btn-primary">Logout</button>
   </div>
 
-  <!-- Scripts -->
   <script src="js/app.js" defer></script>
   <script src="js/auth.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/axios@1.6.8/dist/axios.min.js" defer></script>

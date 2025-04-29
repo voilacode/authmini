@@ -20,6 +20,7 @@ export async function registerRoutes(fastify, options) {
     const { email, password } = request.body;
     try {
       const db = getDb();
+      // Hash password for secure storage
       const passwordHash = await bcrypt.hash(password, 10);
       db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(
         email,
@@ -36,9 +37,11 @@ export async function registerRoutes(fastify, options) {
     try {
       const db = getDb();
       const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+      // Verify credentials
       if (!user || !(await bcrypt.compare(password, user.password_hash))) {
         throw new Error('Invalid credentials');
       }
+      // Generate JWT
       const token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         process.env.JWT_SECRET,

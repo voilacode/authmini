@@ -12,7 +12,6 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 config();
-
 const fastify = Fastify({ logger: true });
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -21,6 +20,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * @async
  */
 async function startServer() {
+  // Serve frontend files
   await fastify.register(fastifyStatic, {
     root: join(__dirname, 'frontend'),
     prefix: '/',

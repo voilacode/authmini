@@ -2,7 +2,8 @@
 
 A minimal full-stack authentication app built with **Fastify**, **Alpine.js**, **SQLite**, and **ES Modules (ESM)**. Designed for beginners to learn full-stack development with a single-server setup.
 
-**Repository**: [https://github.com/voilacode/authmini](https://github.com/voilacode/authmini)
+**Repository**: [https://github.com/voilacode/authmini](https://github.com/voilacode/authmini)  
+**Branch**: `v1` - Basic authentication implementation
 
 ## Overview
 
@@ -27,10 +28,11 @@ AuthMini V1 allows users to register, log in, log out, and view a dashboard. Adm
 
 ## Setup
 
-1. **Clone the Repository**:
+1. **Clone the Repository and Switch to V1 Branch**:
    ```bash
    git clone https://github.com/voilacode/authmini.git
    cd authmini
+   git checkout v1
    ```
 2. **Install Dependencies**:
    ```bash
@@ -54,7 +56,7 @@ AuthMini V1 allows users to register, log in, log out, and view a dashboard. Adm
 
 1. **Frontend**:
    - Open `http://localhost:3000` in a browser.
-   - **Register**: Enter email (`user@example.com`), password (`user123`) → See “Registration successful.”
+   - **Register**: Enter email (`user@example.com`), password (`user123`) → See "Registration successful."
    - **Login**: Use same credentials → User dashboard with email and logout button.
    - **Admin Login**: Use `admin@example.com`, `admin123` → Admin dashboard with user list.
    - **Logout**: Returns to login form.
@@ -75,7 +77,7 @@ AuthMini V1 allows users to register, log in, log out, and view a dashboard. Adm
    - **Logout**: `POST http://localhost:3000/api/logout`
      - Expect: `200`, `{"message":"Logged out"}`
 
-## File Structure
+## File Structure in v1 Branch
 
 - **Root**:
   - `server.mjs`: Fastify server, serves APIs and frontend.
@@ -96,7 +98,7 @@ AuthMini V1 allows users to register, log in, log out, and view a dashboard. Adm
 - **Database**:
   - `db/authmini.db`: SQLite database (created on first run).
 
-## Testing
+## Testing the v1 Branch
 
 1. **Frontend**:
    - Browser: `http://localhost:3000`.
@@ -109,6 +111,7 @@ AuthMini V1 allows users to register, log in, log out, and view a dashboard. Adm
    - **Styles missing**: Clear cache (`Ctrl+Shift+R`), verify `/css/styles.css` loads.
    - **Scripts fail**: Check console, ensure `/js/app.js`, `/js/auth.js` load.
    - **API errors**: Verify `.env` (`JWT_SECRET`), token in Postman.
+   - **Branch issues**: Confirm you're on the v1 branch with `git branch`
 
 ## Notes
 
@@ -116,6 +119,12 @@ AuthMini V1 allows users to register, log in, log out, and view a dashboard. Adm
 - Uses a single server for simplicity, serving both APIs and frontend.
 - For production, add security (e.g., input validation, HTTPS) and testing.
 - Report issues or contribute at [https://github.com/voilacode/authmini](https://github.com/voilacode/authmini).
+- The v1 branch contains the basic implementation. Other branches may contain advanced features.
+
+## Version Information
+
+- Current branch: `v1` - Basic authentication implementation
+- Future versions may include: profile management, password reset, OAuth integration
 
 ## License
 

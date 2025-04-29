@@ -3,8 +3,6 @@
  * Authentication component.
  * @module js/auth
  */
-console.log('auth.js loaded'); // Debug: Confirm script execution
-
 function authComponent() {
   return {
     email: '',
@@ -22,6 +20,7 @@ function authComponent() {
           password: this.password,
         });
         if (action === 'login') {
+          // Store token and reload
           localStorage.setItem('token', res.data.token);
           window.location.reload();
         } else {
@@ -34,5 +33,4 @@ function authComponent() {
   };
 }
 
-// Expose authComponent globally for Alpine.js
 window.authComponent = authComponent;

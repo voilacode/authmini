@@ -22,6 +22,7 @@ export async function registerUserRoutes(fastify, options) {
       return;
     }
     try {
+      // Verify JWT and check admin role
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (decoded.role !== 'admin') {
         reply.code(403).send({ error: 'Admin access required' });
