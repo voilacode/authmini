@@ -41,7 +41,11 @@ async function startServer() {
 
   try {
     // Start server on specified port
-    await fastify.listen({ port: process.env.PORT || 3000 });
+    const port = process.env.PORT || 3000;
+    // Bind to 0.0.0.0 in production (Render), otherwise use default (localhost)
+    const host =
+      process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+    await fastify.listen({ port, host });
     fastify.log.info(`Server running on port ${process.env.PORT}`);
   } catch (err) {
     // Log and exit on server failure
