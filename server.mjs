@@ -1,4 +1,3 @@
-// server.mjs
 /**
  * Entry point for AuthMini server.
  * @module server
@@ -11,9 +10,13 @@ import { registerUserRoutes } from './backend/routes/users.mjs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
+// Load environment variables
 config();
-
-const fastify = Fastify({ logger: true });
+// Initialize Fastify with logging
+const fastify = Fastify({
+  logger: { level: process.env.LOG_LEVEL || 'info' },
+});
+// Get directory name for static file serving
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
@@ -21,24 +24,31 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * @async
  */
 async function startServer() {
+  // Register static file serving for frontend
   await fastify.register(fastifyStatic, {
     root: join(__dirname, 'frontend'),
     prefix: '/',
     setHeaders: (res) => {
+      // Set cache control for static files
       res.setHeader('Cache-Control', 'public, max-age=3600');
     },
   });
 
+  // Register authentication routes
   await fastify.register(registerRoutes, { prefix: '/api' });
+  // Register admin user routes
   await fastify.register(registerUserRoutes, { prefix: '/api' });
 
   try {
+    // Start server on specified port
     await fastify.listen({ port: process.env.PORT || 3000 });
     fastify.log.info(`Server running on port ${process.env.PORT}`);
   } catch (err) {
+    // Log and exit on server failure
     fastify.log.error(err);
     process.exit(1);
   }
 }
 
+// Start the server
 startServer();
