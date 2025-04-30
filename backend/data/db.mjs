@@ -1,26 +1,15 @@
 import fs from 'fs';
 import sqlite3 from 'better-sqlite3';
 import bcrypt from 'bcrypt';
-import { dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 let db;
 
-/**
- * Initializes database with users, profiles, settings, and logs tables.
- * @returns {Database} Database instance.
- */
 export function initDb() {
-  const dbPath = resolve(__dirname, '../../db/authmini.db');
-  const dbDir = dirname(dbPath);
+  // Use Render's writable temp directory
+  const dbPath = resolve('/tmp/authmini.db');
 
-  // ✅ Ensure the directory exists
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-
-  // Connect to SQLite database
+  // No need to create the directory, `/tmp` always exists and is writable
   db = sqlite3(dbPath);
 
   // Create tables
