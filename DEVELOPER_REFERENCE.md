@@ -2,8 +2,8 @@
 
 **Version**: 2.0  
 **Application**: AuthMini V2  
-**Repository**: [https://github.com/voilacode/authmini](https://github.com/voilacode/authmini)  
-**Purpose**: This document serves as a comprehensive technical reference for developers and LLMs, ensuring code consistency, integrity, and clear system understanding for AuthMini V2, an enhanced full-stack authentication app built on V1. It includes a detailed project introduction, user roles, user flows, database schema, API reference, system architecture, file details, testing guidelines, coding standards, deployment/CI-CD details, and LLM guidelines, optimized for developers maintaining the app and LLMs generating uniform code within small context windows.
+**Repository**: [https://github.com/voilacode/authmini/tree/v2](https://github.com/voilacode/authmini/tree/v2)  
+**Purpose**: This document serves as a definitive technical guide for developers and LLMs, ensuring consistent, maintainable code for AuthMini V2, an advanced full-stack authentication app built on V1. It emphasizes **service layer architecture**, **basic testing**, **CI/CD deployment**, and **enhanced UX**, providing detailed insights into project structure, user roles, user flows, database schema, API specifications, system architecture, file details, testing protocols, coding standards, and LLM code generation guidelines. Optimized for developers extending the app and LLMs producing uniform code within constrained context windows, it supports scalable learning and development.
 
 ## Table of Contents
 
@@ -34,7 +34,8 @@
   - [16. tests/api.test.mjs](#16-testsapitest.mjs)
   - [17. .github/workflows/ci.yml](#17-.githubworkflowsci.yml)
   - [18. README.md](#18-readme.md)
-  - [19. DEVELOPER_REFERENCE.md](#19-developer_reference.md)
+  - [19. LEARNING_GUIDE.md](#19-learning_guidemd)
+  - [20. DEVELOPER_REFERENCE.md](#20-developer_referencemd)
 - [API Reference](#api-reference)
 - [Testing Guidelines](#testing-guidelines)
 - [Code Style Guide](#code-style-guide)
@@ -45,11 +46,11 @@
 
 ## Project Introduction
 
-AuthMini V2 is an enhanced full-stack authentication application that builds on V1, designed as an educational tool to teach intermediate web development concepts. It extends V1’s core authentication features (registration, login, logout, admin user listing) with **profile management**, **enhanced admin capabilities**, **improved UX**, **service layer architecture**, **basic testing**, and **CI/CD deployment**. Built with **Fastify** (backend), **Alpine.js** (frontend), **SQLite** (database), and **ES Modules (ESM)**, it maintains a single-server setup hosted at [https://github.com/voilacode/authmini](https://github.com/voilacode/authmini) under the MIT license. AuthMini V2 serves as a stepping stone for learning professional coding practices, testing, and deployment, preparing developers for scalable systems like AuthCloud.
+AuthMini V2 is an enhanced full-stack authentication application that builds on V1, designed as an educational tool to teach intermediate web development concepts. It extends V1’s core authentication features (registration, login, logout, admin user listing) with **profile management**, **enhanced admin capabilities**, **improved UX**, **service layer architecture**, **basic testing**, and **CI/CD deployment**. Built with **Fastify** (backend), **Alpine.js** (frontend), **SQLite** (database), and **ES Modules (ESM)**, it maintains a single-server setup hosted at [https://github.com/voilacode/authmini/tree/v2](https://github.com/voilacode/authmini/tree/v2) under the MIT license. AuthMini V2 serves as a stepping stone for learning professional coding practices, testing, and deployment, preparing developers for scalable systems like AuthCloud.
 
 ### What is AuthMini V2?
 
-AuthMini V2 is a robust, self-contained web application demonstrating an advanced authentication system. It allows users to register, log in, view/edit profiles, change passwords, and manage settings (e.g., theme preference), while admins can search/filter users, enable/disable accounts, and view activity logs. The app uses a single Fastify server to handle API endpoints (`/api/*`) and a frontend single-page application (SPA) at `/`. Its **19-file structure** (13 from V1 plus 6 new/modified files) and additional dependencies (ESLint, Jest, Supertest) balance complexity with accessibility, making it ideal for intermediate learners, developers prototyping features, and LLMs generating consistent code.
+AuthMini V2 is a robust, self-contained web application demonstrating an advanced authentication system. It allows users to register, log in, view/edit profiles, change passwords, and manage settings (e.g., theme preference), while admins can search/filter users, enable/disable accounts, and view activity logs. The app uses a single Fastify server to handle API endpoints (`/api/*`) and a frontend single-page application (SPA) at `/`. Its **20-file structure** (15 from V1 plus 5 new files, including `LEARNING_GUIDE.md`) and additional dependencies (ESLint, Jest, Supertest) balance complexity with accessibility, making it ideal for intermediate learners, developers prototyping features, and LLMs generating consistent code.
 
 ### How is AuthMini V2 Used?
 
@@ -60,7 +61,7 @@ AuthMini V2 is used as:
 - **A Development Sandbox**: Developers can add features (e.g., email notifications, multi-factor authentication) or experiment with testing/deployment, using this document for consistency.
 - **An LLM Code Generation Template**: LLMs use this document’s guidelines to generate V2-compatible code, ensuring uniform style and functionality.
 
-To use AuthMini V2, developers clone the repository, install dependencies, configure `.env`, and run the server (`npm start`). They interact via the browser (`http://localhost:3000`) or test APIs with Postman. Automated tests (`npm test`) and linting (`npm run lint`) ensure code quality, while CI/CD automates deployment to a cloud platform (e.g., Render). This document and `README.md` guide setup, usage, and extension.
+To use AuthMini V2, developers clone the repository (`v2` branch), install dependencies, configure `.env`, and run the server (`npm start`). They interact via the browser (`http://localhost:3000`) or test APIs with Postman. Automated tests (`npm test`) and linting (`npm run lint`) ensure code quality, while CI/CD automates deployment to a cloud platform (e.g., Render). This document, `README.md`, and `LEARNING_GUIDE.md` guide setup, usage, and extension.
 
 ### Why is AuthMini V2 Designed This Way?
 
@@ -72,7 +73,7 @@ AuthMini V2’s design prioritizes:
 - **Enhanced Features**: Profile management, admin search/disable, and UX improvements (validation, animations) demonstrate practical authentication patterns.
 - **Service Layer**: Separates business logic from routes, improving scalability and testability.
 - **Portability**: SQLite and single `PORT` configuration ensure easy local setup.
-- **Open Source Extensibility**: MIT license and GitHub hosting encourage contributions.
+- **Open Source Extensibility**: MIT license and GitHub hosting (`v2` branch) encourage contributions.
 
 This design balances educational value with real-world applicability, making AuthMini V2 ideal for learning, prototyping, and teaching.
 
@@ -99,7 +100,7 @@ Key user interactions in AuthMini V2, extending V1 flows with new features.
 
 - **Steps**:
   1. User visits `http://localhost:3000`, sees login/register form (`frontend/index.html`) with validation.
-  2. Enters `email` (e.g., `user@example.com`) and `password` (e.g., `user123`).
+  2. Enters `email` (e.g., `user@example.com`) and `password` (e.g., `user123`, 6+ characters).
   3. Clicks “Register” → `frontend/js/auth.js` validates inputs (email format, password length), sends `POST /api/register` via Axios.
   4. `backend/routes/auth.mjs` calls `userService.getUserByEmail`, hashes password (`bcrypt`), inserts user into `users` table via `backend/data/db.mjs`.
   5. `activityService.logActivity` logs “User registered.”
@@ -112,7 +113,7 @@ Key user interactions in AuthMini V2, extending V1 flows with new features.
 - **Steps**:
   1. User enters `email` and `password` in login form with validation.
   2. Clicks “Login” → `frontend/js/auth.js` sends `POST /api/login`.
-  3. `backend/routes/auth.mjs` verifies credentials via `userService.getUserByEmail`, generates JWT (`jsonwebtoken`).
+  3. `backend/routes/auth.mjs` verifies credentials via `userService.getUserByEmail`, checks `is_active`, generates JWT (`jsonwebtoken`).
   4. `activityService.logActivity` logs “User logged in.”
   5. Returns `200` with `{ token, user: { email, role } }`.
   6. `frontend/js/app.js` stores token in `localStorage`, shows dashboard (email, profile edit, settings, logout).
@@ -137,7 +138,7 @@ Key user interactions in AuthMini V2, extending V1 flows with new features.
   2. Clicks “Login” → `frontend/js/auth.js` sends `POST /api/login`.
   3. `backend/routes/auth.mjs` verifies, returns JWT with `role: 'admin'`.
   4. `frontend/js/app.js` stores token, calls `GET /api/users` with search query (e.g., `?search=user`).
-  5. `backend/routes/users.mjs` verifies admin token, queries `users` table.
+  5. `backend/routes/users.mjs` verifies admin token, queries `users` table with filters.
   6. Returns `200` with `{ users: [{ id, email, role, created_at, is_active }, ...] }`.
   7. Admin toggles user status → `frontend/js/app.js` sends `POST /api/users/:id/toggle`.
   8. `backend/routes/users.mjs` calls `userService.toggleUserActive`, logs via `activityService.logActivity`.
@@ -295,7 +296,7 @@ AuthMini V2 retains V1’s single-server architecture, enhanced with a service l
 
 ## Project Folder and File Structure
 
-AuthMini V2 consists of **19 files** (13 from V1, 6 new/modified). Below is the directory tree with numbered files for tracking:
+AuthMini V2 consists of **20 files** (15 from V1, 5 new/modified, including `LEARNING_GUIDE.md`). Below is the directory tree with numbered files for tracking:
 
 ```
 authmini/
@@ -328,17 +329,18 @@ authmini/
 │   └── workflows/
 │       └── [17] ci.yml
 ├── [18] README.md
-├── [19] DEVELOPER_REFERENCE.md
+├── [19] LEARNING_GUIDE.md
+├── [20] DEVELOPER_REFERENCE.md
 ```
 
-- **File Count**: 19.
+- **File Count**: 20.
 - **Notes**:
   - `db/` stores `authmini.db` (created at runtime).
   - `.gitignore` excludes `node_modules`, `.env`, `db/authmini.db`, `.eslintrc.json`, `.github/workflows/ci.yml`.
 
 ## File Snapshot
 
-The table summarizes all 19 files, numbered for tracking.
+The table summarizes all 20 files, numbered for tracking.
 
 | #   | File                                   | Purpose                                   | Key Variables                     | Key Methods                               |
 | --- | -------------------------------------- | ----------------------------------------- | --------------------------------- | ----------------------------------------- |
@@ -360,7 +362,8 @@ The table summarizes all 19 files, numbered for tracking.
 | 16  | `tests/api.test.mjs`                   | API integration tests                     | None                              | None (Jest tests)                         |
 | 17  | `.github/workflows/ci.yml`             | CI/CD pipeline configuration              | None                              | None                                      |
 | 18  | `README.md`                            | Quick start, usage overview               | None                              | None                                      |
-| 19  | `DEVELOPER_REFERENCE.md`               | Technical reference for consistency       | None                              | None                                      |
+| 19  | `LEARNING_GUIDE.md`                    | Step-by-step guide to build V2 from V1    | None                              | None                                      |
+| 20  | `DEVELOPER_REFERENCE.md`               | Technical reference for consistency       | None                              | None                                      |
 
 ## File Details
 
@@ -564,7 +567,16 @@ Detailed information for each file, numbered for reference.
 - **Connections**:
   - Rendered on: GitHub.
 
-### 19. DEVELOPER_REFERENCE.md
+### 19. LEARNING_GUIDE.md
+
+- **Purpose**: Step-by-step guide to build V2 from V1, covering new features, testing, and deployment.
+- **Key Variables**: None.
+- **Key Methods**: None.
+- **Content**: Instructions for adding service layer, tests, CI/CD, and deployment.
+- **Connections**:
+  - Linked from: `README.md`.
+
+### 20. DEVELOPER_REFERENCE.md
 
 - **Purpose**: Technical reference for consistency.
 - **Key Variables**: None.
@@ -883,7 +895,7 @@ Standards for consistent, maintainable code, enforced by ESLint.
 
 - **Platform**: Render (free tier).
 - **Steps**:
-  1. Push code to GitHub.
+  1. Push code to GitHub (`v2` branch).
   2. Create Render Web Service, link GitHub repository.
   3. Configure:
      - Runtime: Node.js.
@@ -891,14 +903,14 @@ Standards for consistent, maintainable code, enforced by ESLint.
      - Start: `npm start`.
      - Environment: `PORT`, `JWT_SECRET`, `LOG_LEVEL`.
   4. Deploy, access via Render URL.
-- **Notes**: SQLite persists in Render’s file system.
+- **Notes**: SQLite persists in Render’s file system (ephemeral in free tier).
 
 ### CI/CD
 
 - **Tool**: GitHub Actions.
 - **Configuration**: `.github/workflows/ci.yml`.
 - **Workflow**:
-  - Triggers: Push/pull request to `main`.
+  - Triggers: Push/pull request to `v2` branch.
   - Steps: Install Node.js, run `npm install`, `npm run lint`, `npm test`.
   - Deployment: Render auto-deploys on successful CI.
 - **Notes**: Ensures code quality before deployment.
