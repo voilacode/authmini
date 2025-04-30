@@ -1,7 +1,4 @@
-/**
- * SQLite database management for AuthMini.
- * @module data/db
- */
+import fs from 'fs';
 import sqlite3 from 'better-sqlite3';
 import bcrypt from 'bcrypt';
 import { dirname, resolve } from 'path';
@@ -15,9 +12,18 @@ let db;
  * @returns {Database} Database instance.
  */
 export function initDb() {
+  const dbPath = resolve(__dirname, '../../db/authmini.db');
+  const dbDir = dirname(dbPath);
+
+  // ✅ Ensure the directory exists
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
   // Connect to SQLite database
-  db = sqlite3(resolve(__dirname, '../../db/authmini.db'));
-  // Create tables for users, profiles, settings, and activity logs
+  db = sqlite3(dbPath);
+
+  // Create tables
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,14 +55,12 @@ export function initDb() {
     );
   `);
 
-  // Seed admin user if not exists
+  // Seed admin user
   const adminExists = db
     .prepare('SELECT id FROM users WHERE email = ?')
     .get('admin@example.com');
   if (!adminExists) {
-    // Hash admin password for secure storage
     const passwordHash = bcrypt.hashSync('admin123', 10);
-    // Insert admin user with admin role
     db.prepare(
       'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)'
     ).run('admin@example.com', passwordHash, 'admin');
@@ -65,16 +69,10 @@ export function initDb() {
   return db;
 }
 
-/**
- * Gets database instance.
- * @returns {Database} Database instance.
- */
 export function getDb() {
-  // Ensure database is initialized
   if (!db) throw new Error('Database not initialized');
   return db;
 }
 
-// Initialize database on module load
 initDb();
 export { db };
