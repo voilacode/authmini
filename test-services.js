@@ -11,4 +11,3 @@ updateUserProfile(1, {
 });
 // Test activity logging
 logActivity(1, 'Profile updated');
-console.log('Services tested');
