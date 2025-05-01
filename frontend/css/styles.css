@@ -27,7 +27,7 @@
 
 /* Hover effect for button */
 .btn-primary:hover {
-  background-color: #6b7280; /* hover:bg-gray-500 */
+  background-color: #6b7280; /* hover:bg-gray-500 n*/
   transform: translateY(-2px); /* Lift effect */
 }
 
