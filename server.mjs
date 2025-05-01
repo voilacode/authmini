@@ -40,7 +40,7 @@ async function startServer() {
   await fastify.register(registerUserRoutes, { prefix: '/api' });
 
   try {
-    // Start server on specified port
+    // Start server on specified port for render use 10000
     const port = process.env.PORT || 3000;
     // Bind to 0.0.0.0 in production (Render), otherwise use default (localhost)
     const host =

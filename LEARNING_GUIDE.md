@@ -1,9 +1,9 @@
 # Learning Guide for Building AuthMini V2
 
-**Version**: 2.0  
+**Version**: 2.1  
 **Application**: AuthMini V2  
 **Created by**: Krishna Teja GS  
-**Date**: April 30, 2025
+**Date**: May 1, 2025
 
 ## Purpose
 
@@ -13,7 +13,7 @@ This guide builds on **AuthMini V1** to enhance developers' skills by introducin
 
 We continue leveraging **AI** to generate code snippets, ensuring both **developer-written** and **AI-generated** code align with strict standards for readability, maintainability, and consistency. The single **Fastify server** remains, serving APIs (`/api/*`) and frontend (`/`) at `http://localhost:3000`.
 
-AuthMini V2 adds **6 new files** (2 backend, 2 frontend, 2 root) to the existing 10, for a total of **16 files**, and modifies several V1 files to support new features and standards.
+AuthMini V2 adds **6 new files** (2 backend, 2 frontend, 2 root) to the existing 10, for a total of **16 files**, and modifies several V1 files to support new features and standards. A new `.node-version` file is also added to ensure compatibility with Render’s Node.js version (20.15.1), bringing the total to **17 files**.
 
 This guide provides a step-by-step approach with **code snippets**, **detailed comments**, **explanations**, and **manual testing** using **Postman** for APIs and a browser for the frontend, alongside introductions to **automated testing** and **deployment**. Essential inline comments have been added to clarify key business logic, making the code more accessible for learning.
 
@@ -27,12 +27,12 @@ Before starting, ensure you have:
 - **Basic JavaScript Knowledge**: Understanding of promises, async/await, and modules.
 - **Familiarity with Web Development**: Basic knowledge of APIs, frontend-backend interaction, and HTTP.
 - **Tools Installed**:
-  - Node.js 18+ (`node --version`)
-  - npm 6+ (`npm --version`)
-  - SQLite (`sqlite3 --version`, optional as `better-sqlite3` includes it)
-  - Postman for API testing
-  - Git (`git --version`, for CI/CD)
-  - A code editor (e.g., VS Code) with SQLite extension (e.g., "SQLite" by alexcvzz)
+  - Node.js 20.15.1 (specific version required for Render compatibility due to issues with Node.js 22.x and `better-sqlite3`). Check: `node --version`.
+  - npm 6+ (e.g., 10.8.2). Check: `npm --version`.
+  - SQLite (`sqlite3 --version`, optional as `better-sqlite3` includes it).
+  - Postman for API testing.
+  - Git (`git --version`, for CI/CD).
+  - A code editor (e.g., VS Code) with SQLite extension (e.g., “SQLite” by alexcvzz).
 - **AuthMini V1 Codebase**: A working V1 project with all files from the V1 guide.
 
 **Refresher Resources**:
@@ -110,7 +110,7 @@ Developers who:
 
 By the end of this guide, you will:
 
-1. Extend AuthMini V1 to V2, adding **6 new files** and modifying existing ones for a **16-file structure**.
+1. Extend AuthMini V1 to V2, adding **6 new files** and modifying existing ones for a **17-file structure** (including `.node-version`).
 2. Implement **ESLint** and **JSDoc** for code quality and documentation.
 3. Refactor backend to include a **service layer** for organized business logic.
 4. Add **new features**: Profile management, enhanced admin capabilities, and UX improvements.
@@ -141,17 +141,17 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   - **Admin**: Search/filter users, enable/disable accounts, view activity logs.
   - **UX**: Form validation, error messages, loading states, animations.
 - **Technical Enhancements**:
-  - ESLint for code consistency.
+  - ESLint for code consistency (updated to allow `console.log` for debugging).
   - JSDoc for documentation.
   - Service layer for business logic.
   - Integration tests for APIs, frontend tests, CI/CD pipeline.
-  - Deployment to a cloud platform.
+  - Deployment to a cloud platform (Render, with Node.js 20.15.1).
 - **Nuance**: Focus on maintainability and incremental additions, avoiding complex patterns like multi-tenancy.
 
 ### Step 2: Set Up Extended Project Structure
 
 - **Why**: Organizes new files and updates V1 structure.
-- **How**: Add 6 new files and modify V1 files.
+- **How**: Add 6 new files, modify V1 files, and include `.node-version` for Render compatibility.
 - **Updated Project Structure**:
   ```
   authmini/
@@ -165,7 +165,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   │   │   ├── userService.mjs          # NEW: User-related business logic
   │   │   └── activityService.mjs      # NEW: Activity log logic
   ├── db/
-  │   └── authmini.db                  # Updated: New tables
+  │   └── authmini.db                  # Updated: New tables, included in Git for Render
   ├── frontend/
   │   ├── css/
   │   │   └── styles.css               # Updated: Add animations, form styles
@@ -176,14 +176,16 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   │   └── index.html                   # Updated: Add profile/settings UI
   ├── tests/                           # NEW: Test directory
   │   └── api.test.mjs                 # NEW: Admin account existence test
-  ├── server.mjs                       # Updated: Add service routes
-  ├── package.json                     # Updated: Add ESLint, Jest, ESM test scripts
-  ├── .env                             # Updated: Add new variables
+  ├── server.mjs                       # Updated: Add service routes, Render port/host
+  ├── package.json                     # Updated: Add ESLint, Jest, Node.js 20.15.1
+  ├── .env                             # Updated: Add new variables, Render port/host
   ├── .eslintrc.json                   # NEW: ESLint configuration
+  ├── .node-version                    # NEW: Specifies Node.js 20.15.1 for Render
   ├── jest.config.mjs                  # NEW: Jest configuration for ESM
+  ├── .gitignore                       # Updated: Include authmini.db, keep node_modules/, .env
   └── .github/workflows/ci.yml         # NEW: GitHub Actions CI/CD
   ```
-- **Total Files**: 16 (6 backend, 5 frontend, 5 root).
+- **Total Files**: 17 (6 backend, 5 frontend, 6 root).
 - **New Files**:
   - `backend/services/userService.mjs`: User-related business logic.
   - `backend/services/activityService.mjs`: Activity log logic.
@@ -191,6 +193,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   - `tests/api.test.mjs`: Admin account existence test.
   - `.eslintrc.json`: ESLint configuration.
   - `jest.config.mjs`: Jest configuration for ESM support.
+  - `.node-version`: Specifies Node.js 20.15.1 for Render compatibility.
   - `.github/workflows/ci.yml`: CI/CD pipeline.
 - **Modified Files**:
   - `backend/data/db.mjs`: Add profile/settings tables, activity logs.
@@ -200,9 +203,10 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   - `frontend/js/app.js`: Handle profile/settings state.
   - `frontend/js/auth.js`: Add client-side validation.
   - `frontend/index.html`: Add profile/settings UI.
-  - `server.mjs`: Register new routes, update logging.
-  - `package.json`: Add ESLint, Jest, ESM test scripts.
-  - `.env`: Add new environment variables.
+  - `server.mjs`: Register new routes, update logging, support Render port/host.
+  - `package.json`: Add ESLint, Jest, specify Node.js 20.15.1.
+  - `.env`: Add new environment variables, support Render port/host.
+  - `.gitignore`: Remove `db/authmini.db`, keep `node_modules/`, `.env`.
 - **Code Example** (Create new files):
   ```bash
   mkdir -p authmini/backend/services
@@ -213,16 +217,26 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   touch authmini/tests/api.test.mjs
   touch authmini/.eslintrc.json
   touch authmini/jest.config.mjs
+  touch authmini/.node-version
   touch authmini/.github/workflows/ci.yml
   ```
-- **Nuance**: Ensure `.env`, `.eslintrc.json`, `jest.config.mjs`, and `.github/workflows/ci.yml` are added to `.gitignore` for security and cleanliness.
+- **Nuance**:
+  - `.env`, `.eslintrc.json`, `jest.config.mjs`, and `.github/workflows/ci.yml` are added to `.gitignore` for security and cleanliness.
+  - `authmini.db` is included in Git for Render deployment to simplify testing, though this is not ideal as each `git pull` will overwrite the database. This is done for learning purposes only.
 
 ### Step 3: Verify System Requirements
 
-- **Why**: Ensures tools support new dependencies (ESLint, Jest, GitHub Actions).
+- **Why**: Ensures tools support new dependencies (ESLint, Jest, GitHub Actions) and Render’s Node.js version (20.15.1).
 - **How**: Confirm Node.js, npm, SQLite, and add Git for CI/CD.
 - **Steps**:
-  1. **Node.js**: `node --version` (18+).
+  1. **Node.js**: `node --version` (must be 20.15.1 due to `better-sqlite3` issues with Node.js 22.x).
+     - **If Incorrect Version**:
+       - Use a version manager like `nvm`:
+         ```bash
+         nvm install 20.15.1
+         nvm use 20.15.1
+         ```
+       - Verify: `node --version`.
   2. **npm**: `npm --version` (6+).
   3. **SQLite**: `sqlite3 --version` (optional, `better-sqlite3` handles it).
   4. **Git**: `git --version` (for CI/CD).
@@ -231,24 +245,28 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
        - Verify: `git --version`.
      - **Common Issues**:
        - **Command not found**: Add Git to PATH.
-  - **Note**: V1 setup should suffice, but Git is new for CI/CD.
+  - **Note**: V1 setup should suffice, but Git is new for CI/CD, and Node.js 20.15.1 is required for Render.
 - **Testing**:
   - Run: `node --version`, `npm --version`, `git --version`.
-  - **Expected Outcome**: Valid versions, no errors.
+  - **Expected Outcome**: Node.js 20.15.1, npm 6+, Git installed, no errors.
   - **Common Issues**:
     - **Build errors**: Ensure `python3`, `make`, `g++` (V1 Step 3).
+    - **Node version mismatch**: Use `nvm` to set 20.15.1.
     - **Git missing**: Install Git for CI/CD.
 
 ### Step 4: Install New Dependencies and Configure Environment
 
-- **Why**: Adds ESLint, Jest, and CI/CD tools.
-- **How**: Update `package.json`, `.env`, and create `.eslintrc.json`, `jest.config.mjs`.
+- **Why**: Adds ESLint, Jest, and CI/CD tools, and ensures Node.js 20.15.1 for Render.
+- **How**: Update `package.json`, `.env`, create `.eslintrc.json`, `jest.config.mjs`, and `.node-version`.
 - **Code Example** (`package.json`):
   ```json
   {
     "name": "authmini",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "type": "module",
+    "engines": {
+      "node": "20.15.1"
+    },
     "scripts": {
       "start": "node server.mjs",
       "lint": "eslint .",
@@ -265,7 +283,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
       "jsonwebtoken": "^9.0.0"
     },
     "devDependencies": {
-      "eslint": "^8.0.0",
+      "eslint": "^8.57.0",
       "jest": "^29.0.0",
       "supertest": "^6.0.0"
     }
@@ -273,23 +291,36 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   ```
   - **Explanation**:
     - **New Dependencies**:
-      - `eslint`: Linting for code quality.
+      - `eslint`: Linting for code quality (version 8.57.0, updated for AuthMini V2).
       - `jest`: Testing framework.
-      - `supertest`: API testing with Fastify (unused in new test but retained).
+      - `supertest`: API testing with Fastify.
     - **Scripts**:
       - `lint`: Runs ESLint.
       - `test`: Runs Jest with `--experimental-vm-modules` for ESM support.
       - `test:watch`: Runs Jest in watch mode with ESM support.
+    - **Node.js Version**:
+      - `"engines": { "node": "20.15.1" }`: Specifies Node.js 20.15.1 for Render compatibility, avoiding issues with `better-sqlite3` on Node.js 22.x.
     - **Note**: Added `axios` to dependencies (used in frontend).
     - **Why `--experimental-vm-modules`?**: Enables Jest to handle ESM modules, critical for `"type": "module"`.
+- **Code Example** (`.node-version`):
+  ```
+  20.15.1
+  ```
+  - **Explanation**:
+    - Specifies Node.js 20.15.1 for Render and local development.
+    - Used by tools like `nvm` and Render to ensure the correct Node.js version.
 - **Code Example** (`.env`):
   ```
   PORT=3000
   JWT_SECRET=your_jwt_secret_here
   LOG_LEVEL=info
+  NODE_ENV=development
   ```
   - **Explanation**:
     - **New Variable**: `LOG_LEVEL` for Fastify logging.
+    - **Updated Usage**:
+      - `PORT` and `NODE_ENV` are critical for Render deployment. Render may assign a dynamic `PORT` (e.g., 10000), and `NODE_ENV=production` ensures the server binds to `0.0.0.0` instead of `localhost`.
+      - Other cloud providers (e.g., Heroku, AWS) may have different port/host requirements, so always check their documentation.
     - **Nuance**: Keep `JWT_SECRET` secure (e.g., `openssl rand -base64 32`).
 - **Code Example** (`.eslintrc.json`):
   ```json
@@ -308,15 +339,21 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
       "indent": ["error", 2],
       "quotes": ["error", "single"],
       "semi": ["error", "always"],
-      "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-      "no-console": "warn"
+      "no-console": "off",
+      "no-undef": ["error"]
+    },
+    "globals": {
+      "axios": "readonly",
+      "Alpine": "readonly"
     }
   }
   ```
   - **Explanation**:
     - **Purpose**: Enforces consistent style (2-space indent, single quotes, semicolons).
-    - **Rules**: Warns on `console.log`, ignores unused args starting with `_`.
-    - **Nuance**: Supports ESM (`sourceType: "module"`).
+    - **Updated Rules**:
+      - `"no-console": "off"`: Allows `console.log` statements for debugging, reflecting AuthMini V2’s educational focus where `console.log` is permitted in frontend code.
+      - `"no-undef": ["error"]` with `globals`: Defines `axios` and `Alpine` as readonly globals to fix `axios is not defined` errors in `app.js`, `auth.js`, and `profile.js`.
+    - **Nuance**: Supports ESM (`sourceType: "module"`). Updated to ESLint 8.57.0 for improved compatibility and error handling.
 - **Code Example** (`jest.config.mjs`):
   ```javascript
   /**
@@ -324,67 +361,73 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
    * @module jest.config
    */
   export default {
-    // Use Node.js environment for backend testing
-    testEnvironment: 'node',
-    // Disable transformation for ESM compatibility
-    transform: {},
-    // Recognize .mjs and .js files
-    moduleFileExtensions: ['mjs', 'js'],
-    // Match test files in tests/ directory
     testMatch: ['**/tests/**/*.test.mjs'],
-    // Treat .mjs files as ESM
-    extensionsToTreatAsEsm: ['.mjs'],
+    transform: {}, // disable babel
   };
   ```
   - **Explanation**:
     - **Purpose**: Configures Jest for ESM support, targeting `.mjs` test files.
     - **Settings**:
-      - `testEnvironment`: For backend testing.
+      - `testMatch`: Ensures tests in `tests/` with `.test.mjs` extension are run.
       - `transform`: Disabled for native ESM.
-      - `extensionsToTreatAsEsm`: Ensures `.mjs` files are ESM.
+- **Code Example** (`.gitignore`):
+  ```
+  node_modules/
+  .env
+  ```
+  - **Explanation**:
+    - **Updated**: Removed `db/authmini.db` to include the SQLite database in Git for Render deployment.
+    - **Why Include `authmini.db`?**: Simplifies testing on Render by ensuring the database is available with seeded data (e.g., admin account). This is not ideal, as each `git pull` will overwrite the database, erasing any changes. This approach is used for learning and testing purposes only. In production, use a persistent database (e.g., PostgreSQL).
+    - **Kept**: `node_modules/` and `.env` to exclude sensitive data and dependencies.
 - **Steps**:
-  1. Update `package.json` with new dependencies and scripts.
-  2. Update `.env` with `LOG_LEVEL`.
-  3. Create `.eslintrc.json` and `jest.config.mjs`.
-  4. Run `npm install`.
+  1. Update `package.json` with new dependencies, scripts, and `"engines"`.
+  2. Create `.node-version` with `20.15.1`.
+  3. Update `.env` with `LOG_LEVEL` and verify `PORT`, `NODE_ENV`.
+  4. Create `.eslintrc.json` and `jest.config.mjs`.
+  5. Update `.gitignore` to remove `db/authmini.db`.
+  6. Run `npm install`.
 - **Testing**:
   - Verify `node_modules/` updates.
+  - Run `node --version` to confirm 20.15.1.
   - Run `npm run lint` (may show errors, fixed later).
   - Run `npm test` to verify Jest setup.
   - **Common Issues**:
     - **Permission errors**: Use `sudo` or fix permissions.
     - **Module not found**: Ensure `npm install` ran.
     - **Jest errors**: Verify `jest.config.mjs` and `--experimental-vm-modules`.
+    - **Node version mismatch**: Use `nvm use 20.15.1`.
 
 ## Snapshot of AuthMini V2 Files
 
-| File                                   | Purpose                                                   | Key Variables                     | Key Methods (Arguments)                                                                  |
-| -------------------------------------- | --------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------- |
-| `server.mjs`                           | Fastify server, serves APIs/frontend                      | `fastify`, `__dirname`            | `startServer()`: Starts server                                                           |
-| `package.json`                         | Dependencies, scripts (lint, test)                        | None                              | None                                                                                     |
-| `.env`                                 | Environment variables (`PORT`, `JWT_SECRET`, `LOG_LEVEL`) | `PORT`, `JWT_SECRET`, `LOG_LEVEL` | None                                                                                     |
-| `.eslintrc.json`                       | ESLint configuration                                      | None                              | None                                                                                     |
-| `jest.config.mjs`                      | Jest configuration for ESM                                | None                              | None                                                                                     |
-| `.github/workflows/ci.yml`             | CI/CD pipeline (lint, test)                               | None                              | None                                                                                     |
-| `backend/data/db.mjs`                  | SQLite database, new tables (profiles, settings, logs)    | `db`, `__dirname`                 | `initDb()`: Initializes database<br>`getDb()`: Returns instance                          |
-| `backend/routes/auth.mjs`              | Auth routes (register, login, logout, profile, password)  | None                              | `registerRoutes(fastify, options)`: Registers routes                                     |
-| `backend/routes/users.mjs`             | Admin routes (list, search, enable/disable)               | None                              | `registerUserRoutes(fastify, options)`: Registers routes                                 |
-| `backend/services/userService.mjs`     | User business logic (profile, settings, password)         | None                              | `registerUser(email, password)`: Registers user<br>`loginUser(email, password)`: Logs in |
-| `backend/services/activityService.mjs` | Activity log logic                                        | None                              | `logActivity(userId, action)`: Logs action<br>`getActivityLogs(filters)`: Gets logs      |
-| `frontend/index.html`                  | SPA entry point, adds profile/settings UI                 | None (HTML)                       | None                                                                                     |
-| `frontend/css/styles.css`              | Styles with animations, form validation                   | None (CSS)                        | None                                                                                     |
-| `frontend/js/app.js`                   | SPA state, navigation, profile/settings                   | None                              | `app()`: Alpine.js component with `init()`, `logout()`, `updateSettings()`               |
-| `frontend/js/auth.js`                  | Login/register with validation                            | None                              | `authComponent()`: Alpine.js component with `submit(action)`, `validate()`               |
-| `frontend/js/profile.js`               | Profile/settings component                                | None                              | `profileComponent()`: Alpine.js component with `saveProfile()`, `changePassword()`       |
-| `tests/api.test.mjs`                   | Admin account existence test                              | None                              | None (Jest tests)                                                                        |
+| File                                   | Purpose                                                   | Key Variables                                 | Key Methods (Arguments)                                                                  |
+| -------------------------------------- | --------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `server.mjs`                           | Fastify server, serves APIs/frontend                      | `fastify`, `__dirname`                        | `startServer()`: Starts server                                                           |
+| `package.json`                         | Dependencies, scripts (lint, test), Node.js 20.15.1       | None                                          | None                                                                                     |
+| `.env`                                 | Environment variables (`PORT`, `JWT_SECRET`, `LOG_LEVEL`) | `PORT`, `JWT_SECRET`, `LOG_LEVEL`, `NODE_ENV` | None                                                                                     |
+| `.eslintrc.json`                       | ESLint configuration                                      | None                                          | None                                                                                     |
+| `.node-version`                        | Specifies Node.js 20.15.1 for Render                      | None                                          | None                                                                                     |
+| `jest.config.mjs`                      | Jest configuration for ESM                                | None                                          | None                                                                                     |
+| `.gitignore`                           | Excludes `node_modules/`, `.env`                          | None                                          | None                                                                                     |
+| `.github/workflows/ci.yml`             | CI/CD pipeline (lint, test)                               | None                                          | None                                                                                     |
+| `backend/data/db.mjs`                  | SQLite database, new tables (profiles, settings, logs)    | `db`, `__dirname`                             | `initDb()`: Initializes database<br>`getDb()`: Returns instance                          |
+| `backend/routes/auth.mjs`              | Auth routes (register, login, logout, profile, password)  | None                                          | `registerRoutes(fastify, options)`: Registers routes                                     |
+| `backend/routes/users.mjs`             | Admin routes (list, search, enable/disable)               | None                                          | `registerUserRoutes(fastify, options)`: Registers routes                                 |
+| `backend/services/userService.mjs`     | User business logic (profile, settings, password)         | None                                          | `registerUser(email, password)`: Registers user<br>`loginUser(email, password)`: Logs in |
+| `backend/services/activityService.mjs` | Activity log logic                                        | None                                          | `logActivity(userId, action)`: Logs action<br>`getActivityLogs(filters)`: Gets logs      |
+| `frontend/index.html`                  | SPA entry point, adds profile/settings UI                 | None (HTML)                                   | None                                                                                     |
+| `frontend/css/styles.css`              | Styles with animations, form validation                   | None (CSS)                                    | None                                                                                     |
+| `frontend/js/app.js`                   | SPA state, navigation, profile/settings                   | None                                          | `app()`: Alpine.js component with `init()`, `logout()`, `updateSettings()`               |
+| `frontend/js/auth.js`                  | Login/register with validation                            | None                                          | `authComponent()`: Alpine.js component with `submit(action)`, `validate()`               |
+| `frontend/js/profile.js`               | Profile/settings component                                | None                                          | `profileComponent()`: Alpine.js component with `saveProfile()`, `changePassword()`       |
+| `tests/api.test.mjs`                   | Admin account existence test                              | None                                          | None (Jest tests)                                                                        |
 
-- **Nuance**: Refer to this table for file purposes and key methods.
+- **Nuance**: Refer to this table for file purposes and key methods. The `.node-version` file ensures Render uses Node.js 20.15.1, and `.gitignore` now includes `authmini.db` for learning purposes.
 
 ## Development Process: Extending AuthMini V1 to V2
 
 ### Step 5: Configure ESLint and Fix V1 Code
 
-- **Why**: Ensures consistent code style across V1 and V2.
+- **Why**: Ensures consistent code style across V1 and V2, with updated ESLint rules.
 - **How**: Run ESLint and fix V1 files.
 - **Steps**:
 
@@ -405,10 +448,10 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
 
 - **Testing**:
   - Run `npm run lint`.
-  - **Expected Outcome**: No errors/warnings.
+  - **Expected Outcome**: No errors/warnings, as `no-console` is disabled and `axios`, `Alpine` are defined in `globals`.
   - **Common Issues**:
     - **Syntax errors**: Follow ESLint suggestions.
-    - **Config issues**: Verify `.eslintrc.json`.
+    - **Config issues**: Verify `.eslintrc.json` (e.g., `"no-console": "off"`, `globals`).
 
 ### Step 6: Add JSDoc Documentation
 
@@ -430,7 +473,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
 
 ### Step 7: Extend Database Schema
 
-- **Why**: Supports profiles, settings, and logs.
+- **Why**: Supports profiles, settings, and logs, with `authmini.db` included in Git for Render.
 - **How**: Update `backend/data/db.mjs`.
 - **Code Example** (`backend/data/db.mjs`):
 
@@ -523,7 +566,9 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
       - `settings`: Stores theme, notification preferences.
       - `activity_logs`: Tracks user actions.
     - **Users Update**: Adds `is_active` for enable/disable.
-    - **Nuance**: Foreign keys ensure data integrity.
+    - **Nuance**:
+      - Foreign keys ensure data integrity.
+      - `authmini.db` is included in Git to ensure Render has the seeded admin account and schema, but this means `git pull` will overwrite changes. Use a persistent database in production.
 
 - **Testing**:
   - Update `test-db.mjs` (from V1):
@@ -534,7 +579,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
     ```
   - Run: `node test-db.mjs`.
   - Check `authmini.db` with SQLite extension for new tables.
-  - **Expected Outcome**: `profiles`, `settings`, `activity_logs` tables exist.
+  - **Expected Outcome**: `profiles`, `settings`, `activity_logs` tables exist, admin account seeded.
   - **Common Issues**:
     - **Directory missing**: Ensure `db/` exists.
     - **Schema errors**: Verify SQL syntax.
@@ -818,10 +863,11 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   - **Expected Outcome**: Profile and log tables updated.
   - **Common Issues**:
     - **Database errors**: Ensure `initDb` ran.
+    - **Database overwritten**: Note that `authmini.db` in Git may reset data on `git pull`.
 
 ### Step 9: Update Backend Routes
 
-- **Why**: Add profile, password, search, and enable/disable routes using the service layer.
+- **Why**: Add profile, password, search, and enable/disable routes using the service layer, with Render-compatible server configuration.
 - **How**: Update `auth.mjs`, `users.mjs`, and `server.mjs`.
 - **Code Example** (`backend/routes/auth.mjs`):
 
@@ -1086,9 +1132,13 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
     await fastify.register(registerUserRoutes, { prefix: '/api' });
 
     try {
-      // Start server on specified port
-      await fastify.listen({ port: process.env.PORT || 3000 });
-      fastify.log.info(`Server running on port ${process.env.PORT}`);
+      // Start server on specified port for Render (e.g., 10000)
+      const port = process.env.PORT || 3000;
+      // Bind to 0.0.0.0 in production (Render), otherwise use default (localhost)
+      const host =
+        process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+      await fastify.listen({ port, host });
+      fastify.log.info(`Server running on port ${port}`);
     } catch (err) {
       // Log and exit on server failure
       fastify.log.error(err);
@@ -1099,6 +1149,14 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   // Start the server
   startServer();
   ```
+
+  - **Explanation**:
+    - **Render Compatibility**:
+      - `port = process.env.PORT || 3000`: Uses Render’s assigned `PORT` (e.g., 10000) in production, falls back to 3000 locally.
+      - `host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1'`: Binds to `0.0.0.0` in production for Render’s external access, uses `localhost` in development.
+    - **Cloud Provider Variations**:
+      - Render requires `0.0.0.0` and a dynamic `PORT`. Other providers (e.g., Heroku) may use different environment variables (e.g., `PORT`), and AWS may require specific security groups. Always check the provider’s documentation for host/port configuration.
+    - **Nuance**: The `.env` file supports this with `NODE_ENV` and `PORT`.
 
 - **Testing** (Postman):
   1. Login as admin (`admin@example.com`/`admin123`), get token.
@@ -1120,7 +1178,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   - **Common Issues**:
     - **401**: Verify token.
     - **403**: Use admin token for user routes.
-    - **Database errors**: Check schema.
+    - **Database errors**: Check schema, ensure `authmini.db` is in Git.
 
 ### Step 10: Enhance Frontend UI and Logic
 
@@ -1528,13 +1586,10 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
         try {
           // Get stored token
           const token = localStorage.getItem('token');
-          // Fetch profile and settings
-          const res = await axios.get('/api/profile', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          // Update profile and settings
-          this.profile = res.data.profile || this.profile;
-          this.settings = res.data.settings || this.settings;
+          // Fetch profile and settings (mocked as API not implemented)
+          // const res = await axios.get('/api/profile', { headers: { Authorization: `Bearer ${token}` } });
+          // this.profile = res.data.profile || this.profile;
+          // this.settings = res.data.settings || this.settings;
         } catch (err) {
           // Display error message
           this.error = 'Failed to load profile';
@@ -1592,302 +1647,478 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   - **Common Issues**:
     - **Validation errors**: Check `auth.js` validation logic.
     - **API errors**: Verify backend routes and token.
+    - **Port issues**: Ensure `PORT=3000` in `.env` or matches `server.mjs`.
 
 ### Step 11: Add Basic Testing
 
 - **Why Testing?**  
-  Testing is introduced in V2 to ensure code reliability and build confidence in new features. Here’s the ideology, how to use it, and simple examples:
+  Testing ensures code reliability and validates new features in V2. Here’s the ideology and approach:
 
   - **Ideology**:
+    - **Purpose**: Verifies that code works as expected, catching bugs early and ensuring features (e.g., profile management, admin controls) function correctly.
+    - **Why Now?**: V2’s increased complexity (new routes, service layer) raises error risks, making testing essential.
+    - **Professional Practice**: Testing is standard in real-world development, building good habits.
+    - **Confidence**: Enables refactoring without breaking functionality.
+    - **Preparation for Future**: Lays groundwork for advanced testing in AuthMini V3 (e.g., unit tests, ORM-based tests).
+  - **Why Jest and Supertest?**:
+    - **Jest**: Beginner-friendly testing framework for unit and integration tests.
+    - **Supertest**: Simplifies API testing by simulating HTTP requests to Fastify routes.
+    - **Simplicity**: Aligns with V2’s goal of introducing testing without complexity.
+  - **How to Use**:
+    - **Setup**: Configure Jest/Supertest in `package.json` and `jest.config.mjs`.
+    - **Write Tests**: Create integration tests for APIs (`/api/register`, `/api/login`, admin account).
+    - **Run Tests**: Use `npm test` or `npm test:watch` for development.
+    - **CI/CD Integration**: Tests run automatically in GitHub Actions.
 
-    - **Purpose**: Testing verifies that code works as expected, catching bugs early and ensuring new features don’t break existing functionality.
-    - **Why Now?**:
-      - **Increased Complexity**: V2’s new features (profile management, admin controls) raise the risk of errors, making testing essential.
-      - **Professional Practice**: Testing is standard in real-world development, and V2 introduces it early to build good habits.
-      - **Confidence**: Tests allow refactoring or adding features without fear of breaking the app.
-      - **Preparation for AuthCloud**: Automated testing is critical for large systems, and V2 lays the foundation.
-    - **Why Jest and Supertest?**:
-      - **Jest**: A beginner-friendly testing framework for JavaScript, supporting unit and integration tests.
-      - **Supertest**: Simplifies API testing by simulating HTTP requests to Fastify routes, ideal for V2’s API-focused backend.
-      - **Simplicity**: Both tools are easy to set up and align with V2’s learning goals.
-
-  - **How to Use Testing**:
-
-    - **Setup**: Configure Jest and Supertest in `package.json` and create a `tests/` folder for test files.
-    - **Write Tests**: Create test cases for APIs (e.g., `/api/register`, `/api/login`) to verify responses and behavior.
-    - **Run Tests**: Use `npm test` to execute tests and `npm test:watch` for interactive development.
-    - **Integrate with CI/CD**: Tests run automatically in the CI/CD pipeline to ensure code quality before deployment.
-    - **Scope for V2**:
-      - Focus on **integration tests** for APIs, covering critical functionality (e.g., user registration, login).
-      - Keep tests simple to avoid overwhelming beginners, with plans for unit tests in V3.
-
-  - **Basic Examples**:
-
-    - **Test Case for Register API**:
-      ```javascript
-      test('POST /api/register creates a user', async () => {
-        const response = await request
-          .post('/api/register')
-          .send({ email: 'test@example.com', password: 'test123' });
-        expect(response.status).toBe(201);
-        expect(response.body).toEqual({ message: 'User registered' });
-      });
-      ```
-      - **Explanation**: Simulates a POST request to `/api/register`, checks for a 201 status, and verifies the response message.
-    - **Test Case for Login API**:
-      ```javascript
-      test('POST /api/login returns token', async () => {
-        await request
-          .post('/api/register')
-          .send({ email: 'test2@example.com', password: 'test123' });
-        const response = await request
-          .post('/api/login')
-          .send({ email: 'test2@example.com', password: 'test123' });
-        expect(response.status).toBe(200);
-        expect(response.body).toHaveProperty('token');
-      });
-      ```
-      - **Explanation**: Registers a user, then tests login, ensuring a 200 status and a token in the response.
-
-  - **References**:
-
-    - 🔗 [Jest Getting Started](https://jestjs.io/docs/getting-started): Learn Jest basics.
-    - 🔗 [Supertest Documentation](https://github.com/visionmedia/supertest): Guide to API testing.
-    - 🔗 [Testing Fastify](https://www.fastify.io/docs/latest/Guides/Testing/): Fastify-specific testing tips.
-
-  - **Learning Outcome**:
-    - Understand why testing is critical for reliability.
-    - Learn to write and run simple API tests.
-    - Build confidence in adding features without breaking the app.
-
-- **How**: Create `tests/api.test.mjs` and `jest.config.mjs`.
-- **Code Example** (`jest.config.mjs`):
-  ```javascript
-  /**
-   * Jest configuration for AuthMini V2.
-   * @module jest.config
-   */
-  export default {
-    // Use Node.js environment for backend testing
-    testEnvironment: 'node',
-    // Disable transformation for ESM compatibility
-    transform: {},
-    // Recognize .mjs and .js files
-    moduleFileExtensions: ['mjs', 'js'],
-    // Match test files in tests/ directory
-    testMatch: ['**/tests/**/*.test.mjs'],
-    // Treat .mjs files as ESM
-    extensionsToTreatAsEsm: ['.mjs'],
-  };
-  ```
+- **How**: Create `tests/api.test.mjs` for integration tests.
 - **Code Example** (`tests/api.test.mjs`):
 
   ```javascript
   /**
-   * Database test for admin account existence.
+   * Integration tests for AuthMini APIs.
    * @module tests/api
    */
-  import { describe, test, expect } from '@jest/globals';
-  import { initDb, getDb } from '../backend/data/db.mjs';
+  import supertest from 'supertest';
+  import Fastify from 'fastify';
+  import { registerRoutes } from '../backend/routes/auth.mjs';
+  import { registerUserRoutes } from '../backend/routes/users.mjs';
+  import { initDb } from '../backend/data/db.mjs';
 
-  describe('Database Tests', () => {
-    test('Admin account exists', () => {
-      // Initialize database to ensure schema and seed data
-      initDb();
-      // Get database instance
-      const db = getDb();
-      // Query for admin user
-      const admin = db
-        .prepare('SELECT email, role FROM users WHERE email = ?')
-        .get('admin@example.com');
-      // Verify admin account exists
-      expect(admin).toBeDefined();
-      // Verify admin email
-      expect(admin.email).toBe('admin@example.com');
-      // Verify admin role
-      expect(admin.role).toBe('admin');
+  // Initialize Fastify test server
+  const fastify = Fastify({ logger: false });
+  let request;
+
+  // Setup before all tests
+  beforeAll(async () => {
+    // Initialize database
+    initDb();
+    // Register routes
+    await fastify.register(registerRoutes, { prefix: '/api' });
+    await fastify.register(registerUserRoutes, { prefix: '/api' });
+    // Initialize supertest
+    request = supertest(fastify.server);
+  });
+
+  // Cleanup after all tests
+  afterAll(async () => {
+    // Close Fastify server
+    await fastify.close();
+  });
+
+  // Test admin account existence
+  describe('Admin Account', () => {
+    test('should confirm admin account exists', async () => {
+      // Send login request for admin
+      const response = await request
+        .post('/api/login')
+        .send({ email: 'admin@example.com', password: 'admin123' })
+        .expect(200);
+      // Verify response contains token and admin role
+      expect(response.body).toHaveProperty('token');
+      expect(response.body.user).toHaveProperty('role', 'admin');
+    });
+  });
+
+  // Test user registration
+  describe('User Registration', () => {
+    test('should register a new user', async () => {
+      // Send registration request
+      const response = await request
+        .post('/api/register')
+        .send({ email: 'test@example.com', password: 'test123' })
+        .expect(201);
+      // Verify success message
+      expect(response.body).toEqual({ message: 'User registered' });
+    });
+
+    test('should fail to register duplicate email', async () => {
+      // Send duplicate registration request
+      const response = await request
+        .post('/api/register')
+        .send({ email: 'test@example.com', password: 'test123' })
+        .expect(400);
+      // Verify error message
+      expect(response.body.error).toMatch(/Email already exists/);
+    });
+  });
+
+  // Test user login
+  describe('User Login', () => {
+    test('should login with valid credentials', async () => {
+      // Send login request
+      const response = await request
+        .post('/api/login')
+        .send({ email: 'test@example.com', password: 'test123' })
+        .expect(200);
+      // Verify response contains token and user data
+      expect(response.body).toHaveProperty('token');
+      expect(response.body.user).toHaveProperty('email', 'test@example.com');
+    });
+
+    test('should fail with invalid credentials', async () => {
+      // Send invalid login request
+      const response = await request
+        .post('/api/login')
+        .send({ email: 'test@example.com', password: 'wrong' })
+        .expect(401);
+      // Verify error message
+      expect(response.body.error).toMatch(/Invalid credentials/);
     });
   });
   ```
 
-  - **Explanation**:
-    - **Test Scope**: Verifies the admin account seeded in `db.mjs` exists.
-    - **Why Direct Database Testing?**: Simpler for checking seeded data, avoids API dependencies.
-    - **Inline Comments**: Clarify database initialization, querying, and assertions.
+- **Explanation**:
+
+  - **Purpose**: Tests critical APIs to ensure functionality (admin login, user registration, login).
+  - **Setup**:
+    - Initializes Fastify test server with routes.
+    - Uses `initDb()` for SQLite (`authmini.db`, included in Git for seeded admin account).
+    - `beforeAll`/`afterAll` manage server lifecycle.
+  - **Tests**:
+    - **Admin Account**: Verifies `admin@example.com` exists with `role: admin`.
+    - **Registration**: Tests successful registration and duplicate email failure.
+    - **Login**: Tests valid/invalid credentials.
+  - **Nuance**:
+    - Uses `--experimental-vm-modules` in `package.json` for ESM support.
+    - `authmini.db` in Git ensures seeded admin account, but `git pull` overwrites the database (non-ideal, for learning). AuthMini V3 will address this with a persistent database.
 
 - **Testing**:
-  - Run `npm test`.
-  - **Expected Outcome**: The admin account existence test passes.
+  - Run: `npm test`.
+  - **Expected Outcome**: All tests pass.
+  - Run: `npm test:watch` for interactive development.
   - **Common Issues**:
-    - **Database errors**: Ensure `initDb` runs and `db/authmini.db` exists.
-    - **Jest config**: Verify `jest.config.mjs` and `--experimental-vm-modules`.
-    - **ESM errors**: Ensure `package.json` includes `"type": "module"`.
+    - **Jest errors**: Verify `jest.config.mjs` (`transform: {}`, `testMatch` for `.mjs`).
+    - **Database errors**: Ensure `authmini.db` exists and `initDb()` runs.
+    - **Module errors**: Check `supertest`, `jest` in `package.json`.
+    - **Node version**: Use Node.js 20.15.1 (`nvm use 20.15.1`).
 
-### Step 12: Set Up CI/CD Pipeline and Deployment
+### Step 12: Perform Local Manual Checks Before CI/CD
 
-- **Why Deployment and CI/CD?**  
-  Deployment and CI/CD are introduced in V2 to teach how code moves from development to production. Here’s a clear explanation of the concepts and how they’re implemented:
+- **Why Manual Checks?**  
+  Local manual checks ensure the app is stable before CI/CD, verifying linting, tests, and functionality to reduce pipeline failures.
 
-  - **What is Deployment?**:
+  - **Purpose**:
+    - **Code Quality**: Ensure ESLint passes for consistent style.
+    - **Tests**: Confirm Jest tests succeed.
+    - **Functionality**: Manually test APIs/UI for issues not caught by tests.
+    - **Efficiency**: Fix issues locally to save CI/CD resources.
+  - **Why Before CI/CD?**: Mimics professional workflows, reinforcing debugging skills.
 
-    - **Definition**: Deployment is the process of making your application available to users by hosting it on a server (e.g., a cloud platform like Render, Heroku, or AWS).
-    - **Why in V2?**:
-      - **Real-World Relevance**: Developers need to understand how code runs in production, not just locally.
-      - **Learning Early**: Introduces deployment before V5’s complex architecture, keeping it simple with a single-server app.
-      - **Preparation for AuthCloud**: Deployment is critical for scalable systems, and V2 lays the groundwork.
-    - **How for AuthMini V2?**:
-      - **Platform**: Use **Render** (free tier) to host the Fastify server and SQLite database.
-      - **Steps**:
-        1. Push code to a GitHub repository (`git push origin main`).
-        2. Create a Render account at [render.com](https://render.com).
-        3. Create a new “Web Service” in Render, linking your GitHub repository.
-        4. Configure:
-           - **Runtime**: Node.js.
-           - **Build Command**: `npm install`.
-           - **Start Command**: `npm start`.
-           - **Environment Variables**: Add `PORT`, `JWT_SECRET`, `LOG_LEVEL` from `.env`.
-        5. Deploy the app and access it via the provided URL (e.g., `https://authmini.onrender.com`).
-      - **Why Render?**:
-        - **Simplicity**: Easy setup for beginners with a free tier.
-        - **Node.js Support**: Handles Fastify and SQLite out of the box.
-        - **Minimal Configuration**: Unlike AWS, Render requires minimal setup, aligning with V2’s learning focus.
+- **How**: Run linting, tests, and manual tests.
+- **Steps**:
 
-  - **What is CI/CD?**:
+  1. **Run ESLint**:
+     - Command: `npm run lint`.
+     - **Purpose**: Enforces style (2-space indent, single quotes, semicolons).
+     - **Expected Outcome**: No errors, as `no-console` is off and `axios`/`Alpine` are globals in `.eslintrc.json`.
+     - **Fixes**:
+       - Add semicolons, use single quotes.
+       - Example (`frontend/js/app.js`):
+         ```javascript
+         // Before
+         console.log('Debug');
+         // After
+         console.log('Debug');
+         ```
+  2. **Run Tests**:
+     - Command: `npm test`.
+     - **Purpose**: Verifies `tests/api.test.mjs`.
+     - **Expected Outcome**: All tests pass.
+     - **Fixes**:
+       - Database: Ensure `authmini.db` is initialized.
+       - Test failures: Debug `auth.mjs`, `users.mjs`.
+  3. **Test APIs with Postman**:
+     - **Endpoints**:
+       - **POST `/api/register`**:
+         - Body: `{"email":"test2@example.com","password":"test123"}`.
+         - Expected: `201`, `{ message: "User registered" }`.
+       - **POST `/api/login`**:
+         - Body: `{"email":"test2@example.com","password":"test123"}`.
+         - Expected: `200`, `{ token, user }`.
+       - **POST `/api/profile`**:
+         - Header: `Authorization: Bearer [token]`.
+         - Body: `{"display_name":"Test","bio":"Bio","avatar_url":""}`.
+         - Expected: `200`, `{ message: "Profile updated" }`.
+       - **POST `/api/password`**:
+         - Header: `Authorization: Bearer [token]`.
+         - Body: `{"newPassword":"newpass123"}`.
+         - Expected: `200`, `{ message: "Password updated" }`.
+       - **GET `/api/users?search=test`** (admin):
+         - Header: `Authorization: Bearer [admin token]`.
+         - Expected: `200`, `{ users: [...] }`.
+       - **POST `/api/users/2/toggle`** (admin):
+         - Header: `Authorization: Bearer [admin token]`.
+         - Body: `{"isActive":false}`.
+         - Expected: `200`, `{ message: "User disabled" }`.
+     - **Issues**:
+       - **401**: Check token.
+       - **403**: Use admin token for `/api/users`.
+       - **Database**: Ensure `authmini.db` is seeded.
+  4. **Test Frontend in Browser**:
+     - Run: `npm start`.
+     - Open: `http://localhost:3000`.
+     - **User Flow**:
+       - Register (`test3@example.com`/`test123`).
+       - Login, access dashboard.
+       - Edit profile, change password, update settings.
+       - Verify animations, validation.
+     - **Admin Flow**:
+       - Login (`admin@example.com`/`admin123`).
+       - Search users, toggle status.
+       - Verify loading states, user list.
+     - **Expected Outcome**: Forms validate, profile saves, admin functions work, animations visible.
+     - **Issues**:
+       - **Validation**: Check `auth.js`.
+       - **API**: Verify routes, token.
+       - **Port**: Ensure `PORT=3000` in `.env`.
+  5. **Verify Node.js**:
+     - Command: `node --version`.
+     - **Expected Outcome**: `v20.15.1`.
+     - **Fix**: `nvm use 20.15.1`.
 
-    - **Definition**:
-      - **CI (Continuous Integration)**: Automatically runs tests and linting when code is pushed to a repository, ensuring code quality.
-      - **CD (Continuous Deployment)**: Automatically deploys the app to a server (e.g., Render) when tests pass, making updates seamless.
-    - **Why in V2?**:
-      - **Automation**: Reduces manual errors by automating testing and deployment.
-      - **Professional Practice**: CI/CD is standard in modern development, and V2 introduces it early.
-      - **Scalability**: Prepares for AuthCloud, where automated pipelines are essential.
-    - **How for AuthMini V2?**:
-      - **Tool**: Use **GitHub Actions**, a free CI/CD service integrated with GitHub repositories.
-      - **Workflow**: Create a `.github/workflows/ci.yml` file to define steps (install dependencies, run linting, run tests).
-      - **Triggering CI/CD**:
-        - **Push Trigger**: Pushing code to the `main` branch (`git push origin main`) runs the CI pipeline (linting and tests).
-        - **Pull Request Trigger**: Creating a pull request to `main` runs the pipeline, ensuring quality before merging.
-        - **Manual Trigger**: Use GitHub’s “Actions” tab to manually run the workflow.
-        - **Deployment Trigger**: Configure Render to auto-deploy on successful CI runs by linking it to the GitHub repository.
-      - **Why GitHub Actions?**:
-        - **Free and Simple**: No cost for small projects, easy YAML-based configuration.
-        - **Integration**: Works seamlessly with GitHub, where AuthMini’s code is hosted.
-        - **Learning Focus**: Introduces CI/CD without complex tools like Jenkins.
+- **Testing**:
+  - Run: `npm run lint`, `npm test`, Postman, browser, `node --version`.
+  - **Expected Outcome**: No errors, tests pass, app works, Node.js 20.15.1.
+  - **Issues**:
+    - **Lint**: Fix per ESLint or check `.eslintrc.json`.
+    - **Tests**: Debug API/database.
+    - **UI**: Check browser console.
+    - **Node**: Use `nvm`.
 
-  - **Learning Outcome**:
-    - Understand how to deploy a Node.js app to a cloud platform.
-    - Learn to set up and trigger CI/CD for automated testing and deployment.
-    - Prepare for production workflows in larger projects.
+### Step 13: Set Up CI/CD Pipeline with GitHub Actions
 
-- **How**: Create `.github/workflows/ci.yml` and deploy to Render.
+- **Why CI/CD?**  
+  CI/CD automates testing and deployment for code quality and efficiency.
+
+  - **Purpose**:
+    - **Automate Testing**: Runs ESLint/Jest on push.
+    - **Deploy**: Deploys to Render after tests pass.
+    - **Professional Practice**: Teaches real-world workflows.
+  - **Why GitHub Actions?**: Easy, free, integrates with GitHub.
+  - **Scope**: Run linting/tests on `main`, deploy to Render.
+
+- **How**: Create `.github/workflows/ci.yml`.
 - **Code Example** (`.github/workflows/ci.yml`):
+
   ```yaml
-  name: CI
-  on: [push, pull_request]
+  name: CI/CD for AuthMini V2
+
+  on:
+    push:
+      branches:
+        - main
+
   jobs:
-    build:
+    test:
       runs-on: ubuntu-latest
+
       steps:
-        - uses: actions/checkout@v3
-        - uses: actions/setup-node@v3
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Set up Node.js
+          uses: actions/setup-node@v4
           with:
-            node-version: '18'
-        - run: npm install
-        - run: npm run lint
-        - run: npm test
+            node-version: '20.15.1'
+
+        - name: Install dependencies
+          run: npm install
+
+        - name: Run linting
+          run: npm run lint
+
+        - name: Run tests
+          run: npm test
+
+    deploy:
+      needs: test
+      runs-on: ubuntu-latest
+      if: github.ref == 'refs/heads/main'
+
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Deploy to Render
+          env:
+            RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+            RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          run: |
+            curl -X POST \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys
   ```
-- **Deployment Steps**:
-  1. Initialize Git repository (if not done):
+
+- **Explanation**:
+
+  - **Jobs**:
+    - **test**: Runs ESLint, Jest on `main`.
+    - **deploy**: Triggers Render deployment after tests.
+  - **Secrets**:
+    - `RENDER_API_KEY`, `RENDER_SERVICE_ID`: Added in GitHub settings.
+  - **Nuance**:
+    - Node.js 20.15.1 matches `.node-version`.
+    - `authmini.db` in Git ensures admin account, but overwrites on `git pull` (non-ideal; V3 will use persistent database).
+
+- **Steps**:
+
+  1. Create `.github/workflows/ci.yml`.
+  2. Add secrets in GitHub (`Settings > Secrets and variables > Actions`):
+     - `RENDER_API_KEY` (from Render).
+     - `RENDER_SERVICE_ID` (from Render).
+  3. Commit/push:
      ```bash
-     git init
      git add .
-     git commit -m "Initial commit"
+     git commit -m "Add CI/CD pipeline"
+     git push origin main
      ```
-  2. Create a GitHub repository and push code:
-     ```bash
-     git remote add origin https://github.com/your-username/authmini.git
-     git branch -M main
-     git push -u origin main
-     ```
-  3. Set up Render:
-     - Sign up at [render.com](https://render.com).
-     - Create a Web Service, select your GitHub repository.
-     - Configure as above (Node.js, `npm install`, `npm start`, environment variables).
-     - Deploy and verify the app at the provided URL.
+  4. Check GitHub Actions (`Actions` tab).
+
 - **Testing**:
-  - Push to GitHub and check GitHub Actions for lint/test results.
-  - Visit the Render URL (e.g., `https://authmini.onrender.com`) and test the app.
-  - **Common Issues**:
-    - **Git errors**: Ensure Git is installed and repository is set up.
-    - **Render errors**: Verify environment variables and start command.
-    - **CI failures**: Check linting/test errors in GitHub Actions logs.
+  - Push to `main`.
+  - Monitor GitHub Actions.
+  - **Expected Outcome**: Tests pass, Render deploys.
+  - **Issues**:
+    - **Lint/test failures**: Fix locally.
+    - **Secrets**: Verify `RENDER_API_KEY`, `RENDER_SERVICE_ID`.
+    - **Node**: Ensure `node-version: '20.15.1'`.
+    - **Database**: Note `authmini.db` reset.
 
-### Step 13: Full Application Testing
+### Step 14: Deploy to Render
 
-- **Backend** (Postman):
-  1. Register, login, update profile/password/settings.
-  2. Admin: Search users, toggle active status.
-  - **Expected Outcome**: All APIs return correct responses.
-- **Frontend** (Browser):
-  1. Register/login, edit profile, change password, set theme.
-  2. Admin: Search users, enable/disable accounts.
-  - **Expected Outcome**: UI updates, animations work, validation enforces rules.
-- **Automated Tests**:
-  - Run `npm test`.
-  - **Expected Outcome**: Admin account existence test passes.
-- **Lint**:
-  - Run `npm run lint`.
-  - **Expected Outcome**: No errors.
-- **Deployment**:
-  - Access the Render URL and repeat frontend/backend tests.
-  - **Expected Outcome**: App functions as expected in production.
+- **Why Deploy?**  
+  Deployment makes V2 accessible online, teaching cloud hosting.
 
-## Nuances and Art of Coding
+  - **Purpose**:
+    - **Real-World**: Learn deployment workflows.
+    - **Validate**: Ensure app works in production.
+    - **CI/CD**: Complete pipeline with deployment.
+  - **Why Render?**: Simple, free, supports Node.js 20.15.1.
+  - **Scope**: Deploy via GitHub, use `authmini.db` in Git, support dynamic `PORT`.
 
-- **Service Layer**: Separates concerns, making routes lightweight and logic reusable.
-- **Validation**: Client-side checks improve UX.
-- **Animations**: Enhance user perception of responsiveness.
-- **Testing**: Basic tests build confidence in code.
-- **CI/CD**: Automates workflows, ensuring quality and deployment reliability.
+- **How**: Upload to GitHub, link to Render.
+- **Steps**:
 
-## Commenting Guidelines
+  1. **Prepare Code**:
+     - Ensure `authmini.db` in `db/` (not in `.gitignore`).
+     - Verify `.node-version`: `20.15.1`.
+     - Verify `package.json`: `"engines": { "node": "20.15.1" }`.
+     - Verify `server.mjs`:
+       ```javascript
+       const port = process.env.PORT || 3000;
+       const host =
+         process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+       await fastify.listen({ port, host });
+       ```
+  2. **Upload to GitHub**:
+     - **Personal Repository**:
+       ```bash
+       git init
+       git add .
+       git commit -m "AuthMini V2"
+       git branch -M main
+       git remote add origin https://github.com/yourusername/authmini-v2.git
+       git push -u origin main
+       ```
+     - **Clone `voilacode`**:
+       ```bash
+       git clone -b v2 https://github.com/voilacode/authmini.git authmini-v2
+       cd authmini-v2
+       git remote set-url origin https://github.com/yourusername/authmini-v2.git
+       git push -u origin main
+       ```
+  3. **Set Up Render**:
+     - Sign up: [render.com](https://render.com).
+     - Create Web Service, connect GitHub repository.
+     - Configure:
+       - Name: `authmini-v2`.
+       - Environment: Node.
+       - Branch: `main`.
+       - Build Command: `npm install`.
+       - Start Command: `npm start`.
+     - Environment variables:
+       - `PORT`: `10000` (or blank for dynamic).
+       - `NODE_ENV`: `production`.
+       - `JWT_SECRET`: `openssl rand -base64 32`.
+       - `LOG_LEVEL`: `info`.
+     - Deploy.
+  4. **Verify**:
+     - Check Render logs.
+     - Access Render URL (e.g., `https://authmini-v2.onrender.com`).
+     - Test APIs/UI (same as Step 12).
+  5. **Automate**:
+     - Ensure `.github/workflows/ci.yml` exists.
+     - Verify GitHub secrets.
+     - Push to `main` for CI/CD.
 
-- **JSDoc**: Document all modules, functions, and parameters (e.g., `@param`, `@returns`).
-- **Inline Comments**: Explain business logic (e.g., `// Log user action for audit`).
-- **Why**: Ensures consistency, readability, and AI compatibility.
-- **Example** (`userService.mjs`):
-  ```javascript
-  // Hash password for secure storage
-  const passwordHash = await bcrypt.hash(newPassword, 10);
-  // Update user password in database
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
-    passwordHash,
-    userId
-  );
-  ```
+- **Explanation**:
 
-## Preparing for AuthCloud
+  - **GitHub**:
+    - Personal repo: Full control.
+    - `voilacode`: Uses `https://github.com/voilacode/authmini/tree/v2`.
+  - **Render**:
+    - Node.js 20.15.1 via `.node-version`, `package.json`.
+    - Dynamic `PORT` (e.g., 10000), `0.0.0.0` for production.
+    - **Cloud Variations**: Render uses `PORT`, `0.0.0.0`; Heroku/AWS may differ (check docs).
+  - **Database**:
+    - `authmini.db` in Git simplifies deployment but overwrites on `git pull` (non-ideal; V3 will use persistent database).
+  - **CI/CD**: Automates deployment after tests.
 
-V2 prepares for AuthCloud by teaching:
+- **Testing**:
+  - Access Render URL.
+  - Run Postman/UI tests.
+  - **Expected Outcome**: App loads, APIs/UI work.
+  - **Issues**:
+    - **Build**: Check Render logs.
+    - **Port**: Verify `server.mjs`.
+    - **Database**: Ensure `authmini.db` seeded.
+    - **Secrets**: Check `JWT_SECRET`.
 
-- **Code Quality**: ESLint, JSDoc.
-- **Testing**: Basic database tests.
-- **Organization**: Service layer, modular structure.
-- **Deployment**: CI/CD and cloud hosting.
-- **Features**: Profile management, admin controls.
+### Step 15: Conclusion and Next Steps
 
-## Conclusion
+- **Summary**:  
+  AuthMini V2 extended V1 with profile management, admin capabilities, UX improvements, service layer, ESLint, Jest, and CI/CD. You’ve learned to:
 
-AuthMini V2 extends V1 with professional practices, new features, testing, and deployment, teaching maintainable coding, testing, UX improvements, and production workflows. The 16-file structure, service layer, and CI/CD pipeline prepare developers for real-world projects. Follow the steps, test thoroughly, and experiment with additional features (e.g., email notifications) to deepen learning.
+  - Organize code with `userService.mjs`, `activityService.mjs`.
+  - Enforce quality with ESLint (`no-console` off, `axios`/`Alpine` globals).
+  - Write integration tests with Jest/Supertest.
+  - Perform local checks (linting, tests, manual).
+  - Set up CI/CD with GitHub Actions.
+  - Deploy to Render with Node.js 20.15.1, handling `authmini.db` in Git.
 
-**Next Steps**:
+- **Key Takeaways**:
 
-- Build and test V2 locally and in production.
-- Experiment with new features.
-- Read:
-  - [ESLint](https://eslint.org/docs/user-guide/)
-  - [Jest](https://jestjs.io/docs/getting-started)
-  - [GitHub Actions](https://docs.github.com/en/actions)
-  - [Render Documentation](https://render.com/docs)
+  - **Service Layer**: Enhances maintainability.
+  - **Testing**: Ensures reliability.
+  - **CI/CD**: Streamlines workflows.
+  - **Database**: Including `authmini.db` in Git is non-ideal; V3 will address this.
+  - **Cloud**: Render’s port/host differs from other providers.
 
-Happy coding!
+- **What’s Next?**:
+
+  - **AuthMini V3**: Will focus on:
+    - **Persistent Database**: Use PostgreSQL for production-ready storage.
+    - **ORM**: Implement Prisma for type-safe queries.
+    - **Pagination**: Add server-side pagination for user lists/logs.
+    - **Migrations**: Manage schema changes.
+    - **Seeding**: Initialize data consistently.
+    - **Cache**: Use Redis for performance.
+  - **Deepen Skills**:
+    - Add unit tests for services.
+    - Explore other clouds (Heroku, AWS).
+    - Contribute to `https://github.com/voilacode/authmini`.
+  - **Resources**:
+    - 🔗 [Jest](https://jestjs.io/docs/getting-started)
+    - 🔗 [Render](https://render.com/docs)
+    - 🔗 [GitHub Actions](https://docs.github.com/en/actions)
+
+- **Final Notes**:
+  - **Review**: Revisit steps 1–14.
+  - **Experiment**: Add features (e.g., avatar upload).
+  - **Non-Ideal**: `authmini.db` in Git simplifies learning but not for production.
+  - **Feedback**: Share at `https://github.com/voilacode/authmini/issues`.
+
+Congratulations on completing AuthMini V2! You’re ready for V3’s advanced features.
+
+---
