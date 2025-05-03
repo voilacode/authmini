@@ -1,42 +1,5 @@
 {
   "name": "authmini",
-  "version": "3.0.0",
-  "type": "module",
-  "engines": {
-    "node": "20.15.1"
-  },
-  "scripts": {
-    "start": "node server.mjs",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "test:unit": "vitest run tests/unit",
-    "test:routes": "vitest run tests/routes",
-    "test:api": "vitest run tests/api.test.mjs",
-    "test:watch": "vitest watch",
-    "migrate": "npx prisma migrate deploy --schema=db/schema.prisma",
-    "migrate:dev": "npx prisma migrate dev --schema=db/schema.prisma --name",
-    "seed": "node db/seed.mjs",
-    "prisma:generate": "npx prisma generate --schema=db/schema.prisma",
-    "prisma:studio": "npx prisma studio --schema=db/schema.prisma"
-  },
-  "dependencies": {
-    "@fastify/static": "^6.0.0",
-    "@prisma/client": "^5.0.0",
-    "axios": "^1.6.8",
-    "bcrypt": "^5.0.0",
-    "dotenv": "^16.0.0",
-    "fastify": "^4.0.0",
-    "jsonwebtoken": "^9.0.0"
-  },
-  "devDependencies": {
-    "eslint": "^8.57.0",
-    "vitest": "^1.0.0",
-    "prisma": "^5.0.0",
-    "supertest": "^6.0.0"
-  }
-}
-{
-  "name": "authmini",
   "version": "4.0.0",
   "type": "module",
   "engines": {
