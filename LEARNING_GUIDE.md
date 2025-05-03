@@ -1,21 +1,17 @@
-# Learning Guide for Building AuthMini V2
+# Learning Guide for Building AuthMini V3
 
-**Version**: 2.1  
-**Application**: AuthMini V2  
+**Version**: 3.1  
+**Application**: AuthMini V3  
 **Created by**: Krishna Teja GS  
-**Date**: May 1, 2025
+**Date**: May 2, 2025
 
 ## Purpose
 
-This guide builds on **AuthMini V1** to enhance developers' skills by introducing **code quality**, **feature enhancements**, **basic testing**, and **deployment concepts** while extending the existing codebase. It prepares developers for advanced systems like **AuthCloud** by focusing on maintainable, well-documented, and testable code.
+This guide extends **AuthMini V2** to advance developers' skills by introducing **production-ready database practices** and **comprehensive testing strategies** while maintaining a **beginner-friendly** approach. It builds on V2's authentication app (Fastify, Alpine.js, SQLite) to address the **non-persistent SQLite issue** and prepare for scalable systems like **AuthCloud**.
 
-**AuthMini V2** extends the V1 authentication app by adding features like profile management, enhanced admin capabilities, and improved UX, while introducing **ESLint**, **JSDoc documentation**, a **service layer**, **basic testing**, and **CI/CD deployment**. The goal is to teach professional coding practices, project organization, feature development, and deployment workflows without overwhelming complexity.
+**AuthMini V3** replaces SQLite with **PostgreSQL**, uses **Prisma ORM** for type-safe queries, implements **migrations** for schema management, and **seeding** for consistent data initialization. It features a **multi-layered testing architecture** with unit, integration, and API tests. The application retains V2's features (profile management, admin capabilities, CI/CD) while ensuring **all business logic** resides in the **service layer**. The single **Fastify server** serves APIs (`/api/*`) and frontend (`/`) at `http://localhost:3000` locally or a dynamic port on Render.
 
-We continue leveraging **AI** to generate code snippets, ensuring both **developer-written** and **AI-generated** code align with strict standards for readability, maintainability, and consistency. The single **Fastify server** remains, serving APIs (`/api/*`) and frontend (`/`) at `http://localhost:3000`.
-
-AuthMini V2 adds **6 new files** (2 backend, 2 frontend, 2 root) to the existing 10, for a total of **16 files**, and modifies several V1 files to support new features and standards. A new `.node-version` file is also added to ensure compatibility with Render’s Node.js version (20.15.1), bringing the total to **17 files**.
-
-This guide provides a step-by-step approach with **code snippets**, **detailed comments**, **explanations**, and **manual testing** using **Postman** for APIs and a browser for the frontend, alongside introductions to **automated testing** and **deployment**. Essential inline comments have been added to clarify key business logic, making the code more accessible for learning.
+This guide provides **step-by-step instructions**, **code snippets**, **detailed explanations** of **ORM**, **migrations**, **seeding**, and **testing methodology**, along with **manual testing** (Postman, browser), and **automated tests** (Vitest, Supertest). It focuses on implementing standard CRUD operations with comprehensive test coverage.
 
 ---
 
@@ -23,86 +19,110 @@ This guide provides a step-by-step approach with **code snippets**, **detailed c
 
 Before starting, ensure you have:
 
-- **Completed AuthMini V1**: Familiarity with V1’s 10-file structure, Fastify, Alpine.js, SQLite, and ESM.
-- **Basic JavaScript Knowledge**: Understanding of promises, async/await, and modules.
-- **Familiarity with Web Development**: Basic knowledge of APIs, frontend-backend interaction, and HTTP.
+- **Completed AuthMini V2**: Familiarity with V2's structure, Fastify, Alpine.js, SQLite, ESLint, Jest, and CI/CD.
+- **Basic JavaScript Knowledge**: Promises, async/await, modules, V2's service layer.
+- **Familiarity with Web Development**: APIs, frontend-backend interaction, HTTP.
+- **Basic Database Knowledge**: SQL basics (tables, joins), V2's SQLite setup.
+- **Testing Fundamentals**: Understand the basics of testing and Vitest.
 - **Tools Installed**:
-  - Node.js 20.15.1 (specific version required for Render compatibility due to issues with Node.js 22.x and `better-sqlite3`). Check: `node --version`.
-  - npm 6+ (e.g., 10.8.2). Check: `npm --version`.
-  - SQLite (`sqlite3 --version`, optional as `better-sqlite3` includes it).
-  - Postman for API testing.
-  - Git (`git --version`, for CI/CD).
-  - A code editor (e.g., VS Code) with SQLite extension (e.g., “SQLite” by alexcvzz).
-- **AuthMini V1 Codebase**: A working V1 project with all files from the V1 guide.
+  - **Node.js 20.15.1** (Render-compatible). Check: `node --version`.
+  - **npm 6+** (e.g., 10.8.2). Check: `npm --version`.
+  - **PostgreSQL** (local or Render). Install locally: [postgresql.org](https://www.postgresql.org/download/).
+  - **Postman** for API testing.
+  - **Git** (`git --version`, for CI/CD).
+  - **Code editor** (e.g., VS Code) with Prisma extension ("Prisma" by Prisma).
+- **AuthMini V2 Codebase**: A working V2 project.
+- **Render Account**: For PostgreSQL, app deployment ([render.com](https://render.com)).
+- **GitHub Account**: For CI/CD.
 
 **Refresher Resources**:
 
-- 🔗 [MDN: Advanced JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide)
-- 🔗 [Fastify Documentation](https://www.fastify.io/docs/latest/)
-- 🔗 [Alpine.js Documentation](https://alpinejs.dev/)
-- 🔗 [Git Documentation](https://git-scm.com/doc)
+- 🔗 [MDN: JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide)
+- 🔗 [Fastify](https://www.fastify.io/docs/latest/)
+- 🔗 [Alpine.js](https://alpinejs.dev/)
+- 🔗 [Prisma](https://www.prisma.io/docs/)
+- 🔗 [PostgreSQL](https://www.postgresqltutorial.com/)
+- 🔗 [Vitest Documentation](https://vitest.dev/guide/)
+- 🔗 [Testing JavaScript Applications](https://testingjavascript.com/)
+- 🔗 [Test-Driven Development Basics](https://martinfowler.com/bliki/TestDrivenDevelopment.html)
+- 🔗 [Mocking in JavaScript Tests](https://vitest.dev/guide/mocking.html)
 
 ---
 
 ## Introduction
 
-### Why AuthMini V2?
+### Why AuthMini V3?
 
-AuthMini V2 enhances V1 by introducing **professional development practices**, **new features**, **testing**, and **deployment** while maintaining simplicity. It builds on V1’s authentication system (register, login, logout, admin user list) by adding:
+AuthMini V3 enhances V2 by introducing **production-ready database practices** to handle data reliably. It addresses V2's **SQLite limitation** (non-persistent data due to `authmini.db` in Git) and adds:
 
-- **User Features**: Profile view/edit, password change, account settings (e.g., theme preference).
-- **Admin Features**: Search/filter users, enable/disable accounts, basic activity logs.
-- **Improved UX**: Form validation, better error messages, loading states, and animations.
-- **Technical Improvements**:
-  - **ESLint** for code consistency.
-  - **JSDoc** for documentation.
-  - **Service layer** for organized business logic.
-  - **Basic testing** with Jest for reliability.
-  - **CI/CD pipeline** with GitHub Actions for automated deployment.
+- **PostgreSQL**: Persistent, scalable database replacing SQLite.
+- **Prisma ORM**: Simplifies queries with type safety, reducing errors.
+- **Migrations**: Manages schema changes across environments.
+- **Seeding**: Initializes consistent data (e.g., admin user).
+- **CRUD Operations**: Comprehensive create, read, update, delete functionality.
+- **Testing Pyramid**: Structured approach with unit, integration, and API tests.
+- **CI/CD Integration**: Automated testing in the deployment pipeline.
 
 **Learning Focus**:
 
-- Writing **maintainable JavaScript** with linting and documentation.
-- Organizing code into a **service layer** for scalability.
-- Implementing **basic testing** to ensure code quality.
-- Enhancing **UX** with client-side validation and animations.
-- Understanding **deployment** and **CI/CD** for real-world workflows.
+- Replacing SQLite with **PostgreSQL** for persistence.
+- Using **Prisma ORM** for safe, maintainable queries.
+- Managing schema with **migrations**.
+- Initializing data with **seeding**.
+- Implementing **CRUD operations**.
+- Building a **comprehensive test** suite..
+- Understanding **test-driven development** principles..
 
-### Why Extend V1?
+### Why Extend V2?
 
-Extending V1:
+Extending V2:
 
-- **Reinforces Learning**: Builds on familiar concepts (Fastify, Alpine.js, ESM).
-- **Realistic Workflow**: Mimics real-world project evolution.
-- **Incremental Growth**: Introduces one major concept at a time (code quality, testing, services, deployment).
-- **Maintains Simplicity**: Keeps the single-server setup to focus on learning.
+- **Reinforces Learning**: Builds on Fastify, Alpine.js, service layer, and CI/CD.
+- **Realistic Workflow**: Mimics project evolution in production.
+- **Incremental Growth**: Focuses on database concepts.
+- **Maintains Simplicity**: Single Fastify server avoids complexity.
 
 ### Why These Enhancements?
 
-- **ESLint**: Enforces consistent code style, catching errors early.
-- **JSDoc**: Improves documentation for team collaboration and IDE support.
-- **Service Layer**: Separates business logic from routes, improving scalability.
-- **Testing**: Ensures code reliability and reduces bugs.
-- **CI/CD**: Automates testing and deployment, preparing for production.
-- **New Features**: Teach practical implementation of common auth patterns.
+- **PostgreSQL**: Unlike SQLite, it's persistent and scalable, suitable for production.
+- **Prisma ORM**: Simplifies database interactions, provides type safety, and reduces SQL errors.
+- **Migrations**: Ensures consistent schema across local, staging, and production environments.
+- **Seeding**: Guarantees initial data for testing and deployment.
+- **CRUD Operations**: Provides a comprehensive implementation of data management.
+- **Service Layer**: Centralizes business logic, enhancing maintainability and testability.
 
-### Why Manual Testing Continues?
+### Why Focus on SQLite Issue?
 
-Manual testing with **Postman** and browser:
+In V2, `authmini.db` was included in Git, causing data loss on `git pull` (e.g., new users erased). V3 demonstrates this issue and resolves it with PostgreSQL, teaching **production-ready database practices**.
 
-- **Reinforces Debugging**: Deepens understanding of API and UI behavior.
-- **Complements Basic Tests**: Validates features before automated tests are fully developed.
-- **Real-World Skill**: Manual testing remains critical in professional settings.
+### Why ORM, Migrations, and Seeding?
+
+These concepts are new to many developers and critical for scalable apps:
+
+- **ORM (Object-Relational Mapping)**:
+  - **What**: A tool (Prisma) that maps database tables to JavaScript objects, allowing queries via code (e.g., `prisma.user.findUnique({ where: { email } })`) instead of raw SQL (`SELECT * FROM users WHERE email = ?`).
+  - **Why**: Simplifies queries, reduces errors (e.g., typos in SQL), and provides type safety (e.g., IDE auto-completion).
+  - **Beginner Benefit**: Easier to learn than raw SQL, with error-checking and readable syntax.
+  - **V3 Use**: Prisma replaces V2's `better-sqlite3` queries, ensuring type-safe interactions with PostgreSQL.
+- **Migrations**:
+  - **What**: Scripts that define and apply database schema changes (e.g., creating `User` or `Profile` tables).
+  - **Why**: Tracks schema evolution, ensuring consistency across environments. Without migrations, manual schema changes lead to discrepancies (e.g., local vs. production).
+  - **Beginner Benefit**: Automates schema updates, reducing errors from manual SQL.
+  - **V3 Use**: Prisma migrations replace V2's static `db.mjs` schema, enabling schema versioning.
+- **Seeding**:
+  - **What**: A script to populate the database with initial data (e.g., `admin@example.com`).
+  - **Why**: Ensures consistent starting data for development, testing, and production, replacing V2's manual admin seeding in `db.mjs`.
+  - **Beginner Benefit**: Simplifies setting up test data, especially for testing.
+  - **V3 Use**: Seeds admin and sample users for consistent app behavior.
 
 ### Who Is This Guide For?
 
 Developers who:
 
-- Have built AuthMini V1 and understand its structure.
-- Want to learn **code quality**, **testing**, **service layers**, and **deployment**.
-- Aim to write **professional, maintainable code** for real-world projects.
-- Are preparing for scalable systems like **AuthCloud**.
-- Seek a **structured, incremental** learning path.
+- Completed AuthMini V2 and understand its structure.
+- Want to learn **PostgreSQL**, **Prisma ORM**, **migrations**, **seeding**, and **CRUD operations**.
+- Seek **scalable database practices** for data management.
+- Need a **structured, incremental** path to advanced systems like **AuthCloud**.
 
 ---
 
@@ -110,159 +130,158 @@ Developers who:
 
 By the end of this guide, you will:
 
-1. Extend AuthMini V1 to V2, adding **6 new files** and modifying existing ones for a **17-file structure** (including `.node-version`).
-2. Implement **ESLint** and **JSDoc** for code quality and documentation.
-3. Refactor backend to include a **service layer** for organized business logic.
-4. Add **new features**: Profile management, enhanced admin capabilities, and UX improvements.
-5. Write **basic integration tests** for APIs using Jest and Supertest.
-6. Set up a **CI/CD pipeline** with GitHub Actions for automated linting, testing, and deployment.
-7. Deploy the app to a cloud platform (e.g., Render) and understand deployment workflows.
-8. Test APIs with **Postman** and frontend via browser at `http://localhost:3000`.
-9. Ensure **developer and AI-generated code** follow consistent standards.
-10. Master **environment variables**, **client-side validation**, **error handling**, **loading states**, and **deployment concepts**.
+1. Extend AuthMini V2 to V3, creating a streamlined structure with PostgreSQL and Prisma.
+2. Replace SQLite with **PostgreSQL** for persistent data.
+3. Use **Prisma ORM** for type-safe queries, keeping **business logic** in services.
+4. Implement **migrations** for schema management.
+5. Add **seeding** for consistent data initialization.
+6. Implement comprehensive **CRUD operations**.
+7. Demonstrate V2's **SQLite non-persistence issue**.
+8. Practice test-driven development principles.
+9. Deploy to **Render** with PostgreSQL.
+10. Test APIs with **Postman**, frontend with browser, and automated tests with **Vitest**.
 
 ---
 
 ## Getting Started: Where to Begin?
 
-AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js frontend. Start by reviewing V1’s requirements and structure, then follow these steps to enhance it.
+AuthMini V3 extends V2's Fastify server, Alpine.js frontend, and CI/CD, replacing SQLite with PostgreSQL. Start by reviewing V2's structure, then follow these steps.
 
-### Step 1: Understand V2 Requirements
+### Step 1: Understand V3 Requirements
 
-- **Why**: Clarifies new features and technical goals.
-- **How**: Review the updated navigation flow:
+- **Why**: Clarifies database and CRUD operation goals.
+- **How**: Review navigation flow (same as V2):
   ```
   [Unauthenticated]
     - Register -> Login -> User Dashboard (view/edit profile, change password, settings)
     - Admin Login (admin@example.com) -> Admin Dashboard (search users, enable/disable, view logs)
   ```
 - **New Features**:
-  - **User**: Profile view/edit, password change, account settings (e.g., theme preference).
-  - **Admin**: Search/filter users, enable/disable accounts, view activity logs.
-  - **UX**: Form validation, error messages, loading states, animations.
+  - Persistent **PostgreSQL** database.
+  - **Prisma ORM** for type-safe queries.
+  - **Migrations** for schema changes.
+  - **Seeding** for initial data (admin, sample users).
+  - **CRUD operations** for user management.
 - **Technical Enhancements**:
-  - ESLint for code consistency (updated to allow `console.log` for debugging).
-  - JSDoc for documentation.
-  - Service layer for business logic.
-  - Integration tests for APIs, frontend tests, CI/CD pipeline.
-  - Deployment to a cloud platform (Render, with Node.js 20.15.1).
-- **Nuance**: Focus on maintainability and incremental additions, avoiding complex patterns like multi-tenancy.
+  - Replace SQLite with PostgreSQL.
+  - Use Prisma for queries, keeping business logic in `services/`.
+  - Implement migrations and seeding.
+  - Update CI/CD for Render with PostgreSQL.
+- **Nuance**: Focus on simplicity, avoiding complex patterns like microservices.
 
 ### Step 2: Set Up Extended Project Structure
 
-- **Why**: Organizes new files and updates V1 structure.
-- **How**: Add 6 new files, modify V1 files, and include `.node-version` for Render compatibility.
+- **Why**: Organizes files for Prisma, migrations, and CI/CD.
+- **How**: Add new files, modify V2 files, remove `.node-version`.
 - **Updated Project Structure**:
   ```
   authmini/
   ├── backend/
   │   ├── data/
-  │   │   └── db.mjs                   # Updated: Add profile/settings tables
+  │   │   └── db.mjs                   # Updated: Prisma client
   │   ├── routes/
-  │   │   ├── auth.mjs                 # Updated: Refactored register/login to use service layer
-  │   │   └── users.mjs                # Updated: Add search, enable/disable
-  │   ├── services/                    # NEW: Service layer
-  │   │   ├── userService.mjs          # NEW: User-related business logic
-  │   │   └── activityService.mjs      # NEW: Activity log logic
+  │   │   ├── auth.mjs                 # Updated: Call service methods
+  │   │   └── users.mjs                # Updated: Call service methods, CRUD operations
+  │   ├── services/
+  │   │   ├── userService.mjs          # Updated: Prisma, CRUD operations
+  │   │   └── activityService.mjs      # Updated: Prisma queries
   ├── db/
-  │   └── authmini.db                  # Updated: New tables, included in Git for Render
+  │   ├── migrations/                  # NEW: Prisma migrations
+  │   │   └── (generated files)
+  │   ├── schema.prisma                # NEW: Prisma schema
+  │   └── seed.mjs                     # NEW: Seed script
   ├── frontend/
   │   ├── css/
-  │   │   └── styles.css               # Updated: Add animations, form styles
+  │   │   └── styles.css               # Unchanged
   │   ├── js/
-  │   │   ├── app.js                   # Updated: Handle profile/settings
-  │   │   ├── auth.js                  # Updated: Add validation
-  │   │   └── profile.js               # NEW: Profile/settings component
-  │   └── index.html                   # Updated: Add profile/settings UI
-  ├── tests/                           # NEW: Test directory
-  │   └── api.test.mjs                 # NEW: Admin account existence test
-  ├── server.mjs                       # Updated: Add service routes, Render port/host
-  ├── package.json                     # Updated: Add ESLint, Jest, Node.js 20.15.1
-  ├── .env                             # Updated: Add new variables, Render port/host
-  ├── .eslintrc.json                   # NEW: ESLint configuration
-  ├── .node-version                    # NEW: Specifies Node.js 20.15.1 for Render
-  ├── jest.config.mjs                  # NEW: Jest configuration for ESM
-  ├── .gitignore                       # Updated: Include authmini.db, keep node_modules/, .env
-  └── .github/workflows/ci.yml         # NEW: GitHub Actions CI/CD
+  │   │   ├── app.js                   # Updated: Handle CRUD operations
+  │   │   ├── auth.js                  # Unchanged
+  │   │   └── profile.js               # Unchanged
+  │   └── index.html                   # Updated: Support CRUD operations
+  ├── tests/
+  │   ├── unit/
+  │   │   ├── db.test.mjs              # NEW: Test database client
+  │   │   ├── userService.test.mjs     # NEW: Test user service
+  │   │   └── activityService.test.mjs # NEW: Test activity service
+  │   ├── routes/
+  │   │   ├── auth.test.mjs            # NEW: Test auth routes
+  │   │   └── users.test.mjs           # NEW: Test user routes
+  │   └── api.test.mjs                 # Updated: Integration tests
+  ├── server.mjs                       # Updated: Render config
+  ├── package.json                     # Updated: Prisma, Vitest
+  ├── vite.config.js                   # NEW: Vitest configuration
+  ├── .env                             # Updated: PostgreSQL URL
+  ├── .eslintrc.json                   # Unchanged
+  ├── .gitignore                       # Updated: Remove authmini.db, add dev.db
+  └── .github/workflows/ci.yml         # Updated: Migration, seeding
   ```
-- **Total Files**: 17 (6 backend, 5 frontend, 6 root).
+- **Total Files**: 24 (6 backend, 5 frontend, 8 root, 5 dedicated test files).
 - **New Files**:
-  - `backend/services/userService.mjs`: User-related business logic.
-  - `backend/services/activityService.mjs`: Activity log logic.
-  - `frontend/js/profile.js`: Profile/settings component.
-  - `tests/api.test.mjs`: Admin account existence test.
-  - `.eslintrc.json`: ESLint configuration.
-  - `jest.config.mjs`: Jest configuration for ESM support.
-  - `.node-version`: Specifies Node.js 20.15.1 for Render compatibility.
-  - `.github/workflows/ci.yml`: CI/CD pipeline.
+  - `db/schema.prisma`: Defines PostgreSQL schema for Prisma.
+  - `db/seed.mjs`: Seeds initial data (admin, sample users).
+  - `db/migrations/`: Stores Prisma migration files (generated).
+  - `tests/unit/*.test.mjs`: Dedicated unit tests for each backend component.
+  - `tests/routes/*.test.mjs`: Dedicated route tests.
+  - `vite.config.js`: Vitest configuration.
 - **Modified Files**:
-  - `backend/data/db.mjs`: Add profile/settings tables, activity logs.
-  - `backend/routes/auth.mjs`: Refactored to use service layer for register/login.
-  - `backend/routes/users.mjs`: Add search, enable/disable.
-  - `frontend/css/styles.css`: Add form styles, animations.
-  - `frontend/js/app.js`: Handle profile/settings state.
-  - `frontend/js/auth.js`: Add client-side validation.
-  - `frontend/index.html`: Add profile/settings UI.
-  - `server.mjs`: Register new routes, update logging, support Render port/host.
-  - `package.json`: Add ESLint, Jest, specify Node.js 20.15.1.
-  - `.env`: Add new environment variables, support Render port/host.
-  - `.gitignore`: Remove `db/authmini.db`, keep `node_modules/`, `.env`.
-- **Code Example** (Create new files):
+  - `backend/data/db.mjs`: Initializes Prisma client.
+  - `backend/routes/auth.mjs`, `users.mjs`: Call service methods, no logic, add CRUD operations.
+  - `backend/services/userService.mjs`, `activityService.mjs`: Use Prisma ORM.
+  - `frontend/js/app.js`: Handle CRUD operations.
+  - `frontend/index.html`: Update UI for CRUD operations.
+  - `tests/api.test.mjs`: Integration tests with PostgreSQL, CRUD operations.
+  - `server.mjs`: Update Render config.
+  - `package.json`: Add Prisma dependencies and test scripts.
+  - `.env`: Include `DATABASE_URL`.
+  - `.gitignore`: Remove `authmini.db`, add `dev.db`.
+  - `.github/workflows/ci.yml`: Add migration, seeding steps.
+- **Removed**:
+  - `.node-version`: Render uses `package.json` engines.
+  - `db/authmini.db`: Replaced by PostgreSQL.
+- **Code Example** (Create files):
   ```bash
-  mkdir -p authmini/backend/services
-  mkdir -p authmini/tests
-  mkdir -p authmini/.github/workflows
-  touch authmini/backend/services/{userService.mjs,activityService.mjs}
-  touch authmini/frontend/js/profile.js
-  touch authmini/tests/api.test.mjs
-  touch authmini/.eslintrc.json
-  touch authmini/jest.config.mjs
-  touch authmini/.node-version
-  touch authmini/.github/workflows/ci.yml
+  mkdir -p authmini/db/migrations
+  mkdir -p authmini/tests/unit
+  mkdir -p authmini/tests/routes
+  touch authmini/db/{schema.prisma,seed.mjs}
+  touch authmini/tests/unit/{db.test.mjs,userService.test.mjs,activityService.test.mjs}
+  touch authmini/tests/routes/{auth.test.mjs,users.test.mjs}
+  touch authmini/vite.config.js
   ```
 - **Nuance**:
-  - `.env`, `.eslintrc.json`, `jest.config.mjs`, and `.github/workflows/ci.yml` are added to `.gitignore` for security and cleanliness.
-  - `authmini.db` is included in Git for Render deployment to simplify testing, though this is not ideal as each `git pull` will overwrite the database. This is done for learning purposes only.
+  - `.env`, `.eslintrc.json`, `vite.config.js`, `.github/workflows/ci.yml` in `.gitignore`.
+  - `authmini.db` removed; PostgreSQL ensures persistence.
 
 ### Step 3: Verify System Requirements
 
-- **Why**: Ensures tools support new dependencies (ESLint, Jest, GitHub Actions) and Render’s Node.js version (20.15.1).
-- **How**: Confirm Node.js, npm, SQLite, and add Git for CI/CD.
+- **Why**: Ensures tools support PostgreSQL, Prisma, and Render.
+- **How**: Confirm Node.js, npm, Git, PostgreSQL.
 - **Steps**:
-  1. **Node.js**: `node --version` (must be 20.15.1 due to `better-sqlite3` issues with Node.js 22.x).
-     - **If Incorrect Version**:
-       - Use a version manager like `nvm`:
-         ```bash
-         nvm install 20.15.1
-         nvm use 20.15.1
-         ```
-       - Verify: `node --version`.
+  1. **Node.js**: `node --version` (20.15.1).
+     - **Fix**: `nvm install 20.15.1; nvm use 20.15.1`.
   2. **npm**: `npm --version` (6+).
-  3. **SQLite**: `sqlite3 --version` (optional, `better-sqlite3` handles it).
-  4. **Git**: `git --version` (for CI/CD).
-     - **If Missing**:
-       - Install: [git-scm.com](https://git-scm.com/downloads).
-       - Verify: `git --version`.
-     - **Common Issues**:
-       - **Command not found**: Add Git to PATH.
-  - **Note**: V1 setup should suffice, but Git is new for CI/CD, and Node.js 20.15.1 is required for Render.
+  3. **Git**: `git --version`.
+     - **Fix**: Install from [git-scm.com](https://git-scm.com/downloads).
+  4. **PostgreSQL**:
+     - **Local**: Install, verify: `psql --version`.
+     - **Cloud**: Use Render (Step 17).
 - **Testing**:
-  - Run: `node --version`, `npm --version`, `git --version`.
-  - **Expected Outcome**: Node.js 20.15.1, npm 6+, Git installed, no errors.
-  - **Common Issues**:
-    - **Build errors**: Ensure `python3`, `make`, `g++` (V1 Step 3).
-    - **Node version mismatch**: Use `nvm` to set 20.15.1.
-    - **Git missing**: Install Git for CI/CD.
+  - Run: `node --version`, `npm --version`, `git --version`, `psql --version`.
+  - **Expected Outcome**: Node.js 20.15.1, npm 6+, Git, PostgreSQL installed.
+  - **Issues**:
+    - **Node mismatch**: Use `nvm`.
+    - **PostgreSQL missing**: Install or use Render.
 
 ### Step 4: Install New Dependencies and Configure Environment
 
-- **Why**: Adds ESLint, Jest, and CI/CD tools, and ensures Node.js 20.15.1 for Render.
-- **How**: Update `package.json`, `.env`, create `.eslintrc.json`, `jest.config.mjs`, and `.node-version`.
+- **Why**: Adds Prisma, PostgreSQL dependencies.
+- **How**: Update `package.json`, `.env`, `.gitignore`.
 - **Code Example** (`package.json`):
+
   ```json
   {
     "name": "authmini",
-    "version": "2.1.0",
+    "version": "3.0.0",
     "type": "module",
     "engines": {
       "node": "20.15.1"
@@ -270,369 +289,608 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
     "scripts": {
       "start": "node server.mjs",
       "lint": "eslint .",
-      "test": "node --experimental-vm-modules node_modules/.bin/jest",
-      "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch"
+      "test": "vitest run",
+      "test:unit": "vitest run tests/unit",
+      "test:routes": "vitest run tests/routes",
+      "test:api": "vitest run tests/api.test.mjs",
+      "test:watch": "vitest watch",
+      "migrate": "npx prisma migrate deploy --schema=db/schema.prisma",
+      "migrate:dev": "npx prisma migrate dev --schema=db/schema.prisma --name",
+      "seed": "node db/seed.mjs",
+      "prisma:generate": "npx prisma generate --schema=db/schema.prisma",
+      "prisma:studio": "npx prisma studio --schema=db/schema.prisma"
     },
     "dependencies": {
       "@fastify/static": "^6.0.0",
+      "@prisma/client": "^5.0.0",
       "axios": "^1.6.8",
       "bcrypt": "^5.0.0",
-      "better-sqlite3": "^8.0.0",
       "dotenv": "^16.0.0",
       "fastify": "^4.0.0",
       "jsonwebtoken": "^9.0.0"
     },
     "devDependencies": {
       "eslint": "^8.57.0",
-      "jest": "^29.0.0",
+      "vitest": "^1.0.0",
+      "prisma": "^5.0.0",
       "supertest": "^6.0.0"
     }
   }
   ```
+
   - **Explanation**:
     - **New Dependencies**:
-      - `eslint`: Linting for code quality (version 8.57.0, updated for AuthMini V2).
-      - `jest`: Testing framework.
-      - `supertest`: API testing with Fastify.
+      - `@prisma/client`, `prisma`: Prisma ORM and CLI.
+      - `vitest`: Modern test runner with ESM support.
+    - **Removed**: `better-sqlite3` (SQLite replaced), `jest` (replaced with Vitest).
     - **Scripts**:
-      - `lint`: Runs ESLint.
-      - `test`: Runs Jest with `--experimental-vm-modules` for ESM support.
-      - `test:watch`: Runs Jest in watch mode with ESM support.
-    - **Node.js Version**:
-      - `"engines": { "node": "20.15.1" }`: Specifies Node.js 20.15.1 for Render compatibility, avoiding issues with `better-sqlite3` on Node.js 22.x.
-    - **Note**: Added `axios` to dependencies (used in frontend).
-    - **Why `--experimental-vm-modules`?**: Enables Jest to handle ESM modules, critical for `"type": "module"`.
-- **Code Example** (`.node-version`):
+      - `test`, `test:unit`, `test:routes`, `test:api`: Updated to use Vitest.
+      - `migrate`: Applies migrations.
+      - `seed`: Runs seed script.
+      - `prisma:generate`: Generates Prisma client.
+      - `prisma:studio`: Opens Prisma GUI.
+    - **Node.js Version**: `"engines": { "node": "20.15.1" }` for Render.
+
+- **Code Example** (`vite.config.js`):
+
+  ```javascript
+  import { defineConfig } from 'vitest/config';
+
+  export default defineConfig({
+    test: {
+      globals: true,
+      environment: 'node',
+      include: ['tests/**/*.test.mjs'],
+    },
+  });
   ```
-  20.15.1
-  ```
+
   - **Explanation**:
-    - Specifies Node.js 20.15.1 for Render and local development.
-    - Used by tools like `nvm` and Render to ensure the correct Node.js version.
+    - **Vitest Configuration**: Sets up globals (enables `describe`, `it`, etc. without imports), Node environment, and test file patterns.
+    - **ESM Support**: Works natively with ESM modules.
+
 - **Code Example** (`.env`):
   ```
   PORT=3000
   JWT_SECRET=your_jwt_secret_here
   LOG_LEVEL=info
   NODE_ENV=development
+  DATABASE_URL=postgresql://user:password@localhost:5432/authmini?schema=public
   ```
   - **Explanation**:
-    - **New Variable**: `LOG_LEVEL` for Fastify logging.
-    - **Updated Usage**:
-      - `PORT` and `NODE_ENV` are critical for Render deployment. Render may assign a dynamic `PORT` (e.g., 10000), and `NODE_ENV=production` ensures the server binds to `0.0.0.0` instead of `localhost`.
-      - Other cloud providers (e.g., Heroku, AWS) may have different port/host requirements, so always check their documentation.
-    - **Nuance**: Keep `JWT_SECRET` secure (e.g., `openssl rand -base64 32`).
-- **Code Example** (`.eslintrc.json`):
-  ```json
-  {
-    "env": {
-      "browser": true,
-      "es2021": true,
-      "node": true
-    },
-    "extends": ["eslint:recommended"],
-    "parserOptions": {
-      "ecmaVersion": 12,
-      "sourceType": "module"
-    },
-    "rules": {
-      "indent": ["error", 2],
-      "quotes": ["error", "single"],
-      "semi": ["error", "always"],
-      "no-console": "off",
-      "no-undef": ["error"]
-    },
-    "globals": {
-      "axios": "readonly",
-      "Alpine": "readonly"
-    }
-  }
-  ```
-  - **Explanation**:
-    - **Purpose**: Enforces consistent style (2-space indent, single quotes, semicolons).
-    - **Updated Rules**:
-      - `"no-console": "off"`: Allows `console.log` statements for debugging, reflecting AuthMini V2’s educational focus where `console.log` is permitted in frontend code.
-      - `"no-undef": ["error"]` with `globals`: Defines `axios` and `Alpine` as readonly globals to fix `axios is not defined` errors in `app.js`, `auth.js`, and `profile.js`.
-    - **Nuance**: Supports ESM (`sourceType: "module"`). Updated to ESLint 8.57.0 for improved compatibility and error handling.
-- **Code Example** (`jest.config.mjs`):
-  ```javascript
-  /**
-   * Jest configuration for AuthMini V2.
-   * @module jest.config
-   */
-  export default {
-    testMatch: ['**/tests/**/*.test.mjs'],
-    transform: {}, // disable babel
-  };
-  ```
-  - **Explanation**:
-    - **Purpose**: Configures Jest for ESM support, targeting `.mjs` test files.
-    - **Settings**:
-      - `testMatch`: Ensures tests in `tests/` with `.test.mjs` extension are run.
-      - `transform`: Disabled for native ESM.
+    - **New Variables**: `DATABASE_URL` (PostgreSQL).
+    - **Nuance**: Generate `JWT_SECRET` with `openssl rand -base64 32`.
 - **Code Example** (`.gitignore`):
   ```
   node_modules/
   .env
+  dev.db
   ```
   - **Explanation**:
-    - **Updated**: Removed `db/authmini.db` to include the SQLite database in Git for Render deployment.
-    - **Why Include `authmini.db`?**: Simplifies testing on Render by ensuring the database is available with seeded data (e.g., admin account). This is not ideal, as each `git pull` will overwrite the database, erasing any changes. This approach is used for learning and testing purposes only. In production, use a persistent database (e.g., PostgreSQL).
-    - **Kept**: `node_modules/` and `.env` to exclude sensitive data and dependencies.
+    - **Updated**: Removed `db/authmini.db`, added `dev.db` (Prisma's local dev database).
+    - **Why**: `authmini.db` no longer used; `dev.db` is in root for local Prisma dev database.
 - **Steps**:
-  1. Update `package.json` with new dependencies, scripts, and `"engines"`.
-  2. Create `.node-version` with `20.15.1`.
-  3. Update `.env` with `LOG_LEVEL` and verify `PORT`, `NODE_ENV`.
-  4. Create `.eslintrc.json` and `jest.config.mjs`.
-  5. Update `.gitignore` to remove `db/authmini.db`.
-  6. Run `npm install`.
+  1. Update `package.json`, `.env`, `.gitignore`.
+  2. Create `vite.config.js`.
+  3. Run `npm install`.
 - **Testing**:
-  - Verify `node_modules/` updates.
-  - Run `node --version` to confirm 20.15.1.
-  - Run `npm run lint` (may show errors, fixed later).
-  - Run `npm test` to verify Jest setup.
-  - **Common Issues**:
-    - **Permission errors**: Use `sudo` or fix permissions.
-    - **Module not found**: Ensure `npm install` ran.
-    - **Jest errors**: Verify `jest.config.mjs` and `--experimental-vm-modules`.
-    - **Node version mismatch**: Use `nvm use 20.15.1`.
+  - Verify `node_modules/`.
+  - **Command**: `npm ls @prisma/client prisma vitest`.
+  - **Expected Output**: Shows installed packages.
+  - **Issues**:
+    - **Module not found**: Run `npm install`.
+    - **Node version**: `nvm use 20.15.1`.
 
-## Snapshot of AuthMini V2 Files
+---
 
-| File                                   | Purpose                                                   | Key Variables                                 | Key Methods (Arguments)                                                                  |
-| -------------------------------------- | --------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `server.mjs`                           | Fastify server, serves APIs/frontend                      | `fastify`, `__dirname`                        | `startServer()`: Starts server                                                           |
-| `package.json`                         | Dependencies, scripts (lint, test), Node.js 20.15.1       | None                                          | None                                                                                     |
-| `.env`                                 | Environment variables (`PORT`, `JWT_SECRET`, `LOG_LEVEL`) | `PORT`, `JWT_SECRET`, `LOG_LEVEL`, `NODE_ENV` | None                                                                                     |
-| `.eslintrc.json`                       | ESLint configuration                                      | None                                          | None                                                                                     |
-| `.node-version`                        | Specifies Node.js 20.15.1 for Render                      | None                                          | None                                                                                     |
-| `jest.config.mjs`                      | Jest configuration for ESM                                | None                                          | None                                                                                     |
-| `.gitignore`                           | Excludes `node_modules/`, `.env`                          | None                                          | None                                                                                     |
-| `.github/workflows/ci.yml`             | CI/CD pipeline (lint, test)                               | None                                          | None                                                                                     |
-| `backend/data/db.mjs`                  | SQLite database, new tables (profiles, settings, logs)    | `db`, `__dirname`                             | `initDb()`: Initializes database<br>`getDb()`: Returns instance                          |
-| `backend/routes/auth.mjs`              | Auth routes (register, login, logout, profile, password)  | None                                          | `registerRoutes(fastify, options)`: Registers routes                                     |
-| `backend/routes/users.mjs`             | Admin routes (list, search, enable/disable)               | None                                          | `registerUserRoutes(fastify, options)`: Registers routes                                 |
-| `backend/services/userService.mjs`     | User business logic (profile, settings, password)         | None                                          | `registerUser(email, password)`: Registers user<br>`loginUser(email, password)`: Logs in |
-| `backend/services/activityService.mjs` | Activity log logic                                        | None                                          | `logActivity(userId, action)`: Logs action<br>`getActivityLogs(filters)`: Gets logs      |
-| `frontend/index.html`                  | SPA entry point, adds profile/settings UI                 | None (HTML)                                   | None                                                                                     |
-| `frontend/css/styles.css`              | Styles with animations, form validation                   | None (CSS)                                    | None                                                                                     |
-| `frontend/js/app.js`                   | SPA state, navigation, profile/settings                   | None                                          | `app()`: Alpine.js component with `init()`, `logout()`, `updateSettings()`               |
-| `frontend/js/auth.js`                  | Login/register with validation                            | None                                          | `authComponent()`: Alpine.js component with `submit(action)`, `validate()`               |
-| `frontend/js/profile.js`               | Profile/settings component                                | None                                          | `profileComponent()`: Alpine.js component with `saveProfile()`, `changePassword()`       |
-| `tests/api.test.mjs`                   | Admin account existence test                              | None                                          | None (Jest tests)                                                                        |
+## Backend Implementation
 
-- **Nuance**: Refer to this table for file purposes and key methods. The `.node-version` file ensures Render uses Node.js 20.15.1, and `.gitignore` now includes `authmini.db` for learning purposes.
+# Step 5: Understanding Testing in Modern Development
 
-## Development Process: Extending AuthMini V1 to V2
+## Why Testing Matters
 
-### Step 5: Configure ESLint and Fix V1 Code
+Testing is a critical aspect of software development that ensures code quality, reliability, and maintainability. In the context of AuthMini V3, we've implemented a structured testing approach that follows industry best practices and provides developers with confidence in their codebase.
 
-- **Why**: Ensures consistent code style across V1 and V2, with updated ESLint rules.
-- **How**: Run ESLint and fix V1 files.
-- **Steps**:
+### Testing Philosophy
 
-  1. Run `npm run lint`.
-  2. Fix errors (e.g., add semicolons, use single quotes).
+At its core, testing serves several essential purposes:
 
-  - Example Fix (`server.mjs`):
+- **Verification**: Confirms code works as expected
+- **Regression Prevention**: Ensures new changes don't break existing functionality
+- **Documentation**: Tests serve as executable documentation of expected behavior
+- **Design Feedback**: Well-structured tests often reveal design flaws
+- **Refactoring Safety Net**: Allows confident code changes
 
-    ```javascript
-    // Before
-    import Fastify from 'fastify';
-    const fastify = Fastify({ logger: true });
+### Testing Pyramid
 
-    // After
-    import Fastify from 'fastify';
-    const fastify = Fastify({ logger: true });
-    ```
+AuthMini V3 follows the "Testing Pyramid" approach popularized by Mike Cohn:
 
-- **Testing**:
-  - Run `npm run lint`.
-  - **Expected Outcome**: No errors/warnings, as `no-console` is disabled and `axios`, `Alpine` are defined in `globals`.
-  - **Common Issues**:
-    - **Syntax errors**: Follow ESLint suggestions.
-    - **Config issues**: Verify `.eslintrc.json` (e.g., `"no-console": "off"`, `globals`).
+```
+       ▲
+      / \
+     /   \
+    / E2E \
+   /-------\
+  /Integration\
+ /------------\
+/    Unit      \
+-----------------
+```
 
-### Step 6: Add JSDoc Documentation
+- **Unit Tests**: Focus on testing individual components in isolation
+- **Integration Tests**: Test how components work together
+- **End-to-End Tests**: Test entire application flows
 
-- **Why**: Improves code readability and IDE support.
-- **How**: Enhance V1 files with JSDoc, add to new files.
-- **Example** (Update `backend/routes/auth.mjs`):
-  ```javascript
-  /**
-   * Registers auth routes for registration, login, logout, and profile management.
-   * @param {FastifyInstance} fastify - Fastify instance.
-   * @param {Object} options - Route options.
-   * @async
-   */
-  export async function registerRoutes(fastify, options) {
-    // Routes
+This pyramid structure suggests having more unit tests (fast, focused) and fewer integration and E2E tests (slower, more complex). This balance provides both speed and confidence.
+
+### Test Types in AuthMini V3
+
+Our testing strategy is comprehensive and multi-layered:
+
+1. **Unit Tests** (`tests/unit/*.test.mjs`):
+
+   - Test individual services, database interactions
+   - Mock external dependencies
+   - Fast execution, high specificity
+   - Example: Testing that `userService.registerUser()` creates a user record
+
+2. **Route Tests** (`tests/routes/*.test.mjs`):
+
+   - Test HTTP endpoints with mocked services
+   - Verify request/response handling
+   - Focus on route logic without database interactions
+   - Example: Testing that `/api/register` returns 201 status code on success
+
+3. **API Integration Tests** (`tests/api.test.mjs`):
+   - Test complete workflows (register → login → update profile)
+   - Use actual database (in test environment)
+   - Validate end-to-end functionality
+   - Example: Testing user registration, login, and profile update as a sequence
+
+### Testing Techniques
+
+AuthMini V3 employs several key testing techniques:
+
+#### 1. Isolation through Mocking
+
+```javascript
+// Example of mocking in route tests (Vitest)
+vi.mock('../../backend/services/userService.mjs', () => ({
+  registerUser: vi.fn().mockResolvedValue({ id: 1 }),
+  loginUser: vi.fn().mockResolvedValue({ token: 'fake-token', user: {...} }),
+}));
+```
+
+This allows testing route handlers without actual service implementation.
+
+#### 2. Fixture Setup
+
+```javascript
+beforeAll(async () => {
+  // Setup test data
+  const result = await registerUser('test-user@example.com', 'password123');
+  testUserId = result.id;
+});
+```
+
+Prepares the test environment with necessary data.
+
+#### 3. Cleanup
+
+```javascript
+afterAll(async () => {
+  // Clean up test data
+  if (testUserId) {
+    await db.user.delete({ where: { id: testUserId } });
+  }
+});
+```
+
+Ensures tests don't affect each other by cleaning up after tests run.
+
+#### 4. Arrange-Act-Assert Pattern
+
+```javascript
+test('should register a new user', async () => {
+  // Arrange
+  const userData = { email: 'new-user@example.com', password: 'password123' };
+
+  // Act
+  const result = await registerUser(userData.email, userData.password);
+
+  // Assert
+  expect(result.id).toBeDefined();
+  expect(logActivity).toHaveBeenCalled();
+});
+```
+
+This clear structure makes tests readable and maintainable.
+
+### Benefits of Our Testing Approach
+
+1. **Confidence in Refactoring**:
+
+   - The shift from SQLite to PostgreSQL is validated by comprehensive tests
+   - Changing database technology is a high-risk operation made safer through testing
+
+2. **Maintainability**:
+
+   - New developers can understand expected behavior by reading tests
+   - Bugs can be reproduced reliably through test cases
+
+3. **Faster Development**:
+
+   - Tests can be run quickly to verify changes
+   - Developers don't need to manually test every scenario
+
+4. **Documentation**:
+   - Tests clearly show how components should be used
+   - New team members can learn from test examples
+
+### Running Tests
+
+AuthMini V3 provides dedicated scripts for each test level:
+
+```bash
+# Run unit tests only
+npm run test:unit
+
+# Run route tests only
+npm run test:routes
+
+# Run API integration tests only
+npm run test:api
+
+# Run all tests
+npm test
+```
+
+This granularity allows developers to run just what they need during development.
+
+### Testing Best Practices Demonstrated
+
+1. **Test Independence**: Each test can run in isolation
+2. **Deterministic Results**: Tests always produce the same result under the same conditions
+3. **Fast Execution**: Unit and route tests run quickly
+4. **Readable Tests**: Clear structure and descriptive names
+5. **Comprehensive Coverage**: Tests cover happy paths and error cases
+
+# Step 6: Configure Prisma and PostgreSQL
+
+- **Why**: Replace SQLite with PostgreSQL using Prisma ORM for type-safe queries.
+- **How**: Define schema, initialize Prisma client.
+- **Code Example** (`db/schema.prisma`):
+
+  ```prisma
+  generator client {
+    provider = "prisma-client-js"
+  }
+
+  datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
+
+  model User {
+    id           Int          @id @default(autoincrement())
+    email        String       @unique
+    passwordHash String
+    role         String       @default("user")
+    is_active    Boolean      @default(true)
+    createdAt    DateTime     @default(now())
+    profile      Profile?
+    settings     Settings?
+    activityLogs ActivityLog[]
+  }
+
+  model Profile {
+    userId      Int     @id
+    displayName String?
+    bio         String?
+    avatarUrl   String?
+    user        User    @relation(fields: [userId], references: [id])
+  }
+
+  model Settings {
+    userId       Int     @id
+    theme        String  @default("light")
+    notifications Boolean @default(true)
+    user         User    @relation(fields: [userId], references: [id])
+  }
+
+  model ActivityLog {
+    id        Int      @id @default(autoincrement())
+    userId    Int
+    action    String
+    createdAt DateTime @default(now())
+    user      User     @relation(fields: [userId], references: [id])
   }
   ```
-- **Nuance**: Add JSDoc to all major functions and modules in V1 files (e.g., `db.mjs`, `app.js`).
 
-### Step 7: Extend Database Schema
+  - **Explanation**:
+    - **Schema**: Mirrors V2's SQLite tables (`users`, `profiles`, `settings`, `activity_logs`) but uses Prisma's syntax.
+    - **ORM Benefit**: Prisma maps tables to JavaScript objects, enabling queries like `prisma.user.findMany()`.
+    - **Relations**: Defines joins (e.g., `User` to `Profile`) for data relationships.
 
-- **Why**: Supports profiles, settings, and logs, with `authmini.db` included in Git for Render.
-- **How**: Update `backend/data/db.mjs`.
 - **Code Example** (`backend/data/db.mjs`):
 
   ```javascript
   /**
-   * SQLite database management for AuthMini.
+   * Prisma database client for AuthMini.
    * @module data/db
    */
-  import sqlite3 from 'better-sqlite3';
-  import bcrypt from 'bcrypt';
-  import { dirname, resolve } from 'path';
-  import { fileURLToPath } from 'url';
+  import { PrismaClient } from '@prisma/client';
 
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  let db;
+  /** @type {PrismaClient} */
+  let prisma;
 
   /**
-   * Initializes database with users, profiles, settings, and logs tables.
-   * @returns {Database} Database instance.
+   * Initializes Prisma client.
+   * @returns {PrismaClient} Prisma client instance.
    */
   export function initDb() {
-    // Connect to SQLite database
-    db = sqlite3(resolve(__dirname, '../../db/authmini.db'));
-    // Create tables for users, profiles, settings, and activity logs
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'user',
-        is_active BOOLEAN DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-      CREATE TABLE IF NOT EXISTS profiles (
-        user_id INTEGER PRIMARY KEY,
-        display_name TEXT,
-        bio TEXT,
-        avatar_url TEXT,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-      CREATE TABLE IF NOT EXISTS settings (
-        user_id INTEGER PRIMARY KEY,
-        theme TEXT DEFAULT 'light',
-        notifications BOOLEAN DEFAULT 1,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-      CREATE TABLE IF NOT EXISTS activity_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        action TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-    `);
-
-    // Seed admin user if not exists
-    const adminExists = db
-      .prepare('SELECT id FROM users WHERE email = ?')
-      .get('admin@example.com');
-    if (!adminExists) {
-      // Hash admin password for secure storage
-      const passwordHash = bcrypt.hashSync('admin123', 10);
-      // Insert admin user with admin role
-      db.prepare(
-        'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)'
-      ).run('admin@example.com', passwordHash, 'admin');
+    if (!prisma) {
+      prisma = new PrismaClient();
     }
-
-    return db;
+    return prisma;
   }
 
   /**
-   * Gets database instance.
-   * @returns {Database} Database instance.
+   * Gets Prisma client.
+   * @returns {PrismaClient} Prisma client instance.
    */
   export function getDb() {
-    // Ensure database is initialized
-    if (!db) throw new Error('Database not initialized');
-    return db;
+    if (!prisma) {
+      throw new Error('Database not initialized');
+    }
+    return prisma;
   }
 
   // Initialize database on module load
   initDb();
-  export { db };
+  export { prisma };
   ```
 
   - **Explanation**:
-    - **New Tables**:
-      - `profiles`: Stores display name, bio, avatar URL.
-      - `settings`: Stores theme, notification preferences.
-      - `activity_logs`: Tracks user actions.
-    - **Users Update**: Adds `is_active` for enable/disable.
-    - **Nuance**:
-      - Foreign keys ensure data integrity.
-      - `authmini.db` is included in Git to ensure Render has the seeded admin account and schema, but this means `git pull` will overwrite changes. Use a persistent database in production.
+    - Replaces V2's `better-sqlite3` with Prisma client.
+    - **ORM**: `prisma` object provides methods like `findUnique`, `create`.
+
+- **Testing** (`tests/unit/db.test.mjs`):
+
+  ```javascript
+  /**
+   * Unit tests for database client.
+   * @module tests/unit/db
+   */
+  import { describe, it, expect } from 'vitest';
+  import { initDb, getDb } from '../../backend/data/db.mjs';
+
+  describe('Database Client', () => {
+    it('should initialize Prisma client', () => {
+      const db = initDb();
+      expect(db).toBeDefined();
+      expect(typeof db.$connect).toBe('function');
+    });
+
+    it('should get initialized Prisma client', () => {
+      const db = getDb();
+      expect(db).toBeDefined();
+      expect(typeof db.$connect).toBe('function');
+    });
+
+    it('should return the same instance when called multiple times', () => {
+      const db1 = initDb();
+      const db2 = initDb();
+      expect(db1).toBe(db2);
+    });
+  });
+  ```
+
+- **Steps**:
+  1. Create `schema.prisma`, update `db.mjs`.
+  2. Set up PostgreSQL locally: `createdb authmini`.
+  3. Update `.env` with `DATABASE_URL`.
+  4. Run `npm run prisma:generate` to initialize the client.
+  5. Run `npm run test tests/unit/db.test.mjs` to test the database client.
+  6. Run `npm run migrate:dev -- init` to create tables.
+- **Testing**:
+  - **Command**: `psql -d authmini -c "\dt"`.
+  - **Expected Outcome**: Tables (`User`, `Profile`, etc.) exist.
+  - **Issues**:
+    - **Connection error**: Verify `DATABASE_URL`.
+    - **Migration error**: Check `schema.prisma` syntax.
+
+### Step 7: Implement Database Migrations
+
+- **Why**: Migrations ensure consistent schema changes across environments.
+- **How**: Use Prisma's migration tools.
+- **Steps**:
+  1. After creating `schema.prisma`, run:
+     ```bash
+     npm run migrate:dev -- init
+     ```
+  2. Prisma generates migration files in `db/migrations/`.
+  3. Example migration (`db/migrations/..._init.sql`):
+     ```sql
+     CREATE TABLE "User" (
+       id SERIAL PRIMARY KEY,
+       email TEXT UNIQUE NOT NULL,
+       passwordHash TEXT NOT NULL,
+       role TEXT NOT NULL DEFAULT 'user',
+       is_active BOOLEAN NOT NULL DEFAULT true,
+       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+     );
+     ```
+  - **Explanation**:
+    - **Migration**: Converts `schema.prisma` to SQL, applies to PostgreSQL.
+    - **Benefit**: Tracks schema history, allows rollback or updates.
+- **Testing**:
+  - **Command**: `npm run migrate`.
+  - **Expected Output**: `All migrations have been successfully applied.`
+  - **Command**: `psql -d authmini -c "\dt"`.
+  - **Expected Output**: Lists tables (`User`, `Profile`, `Settings`, `ActivityLog`).
+  - **Issues**:
+    - `Error validating datasource`: Fix `DATABASE_URL` in `.env`.
+    - `Migration failed`: Check `schema.prisma` syntax.
+
+### Step 8: Implement Database Seeding
+
+- **Why**: Seeds initial data (e.g., admin, sample users) for consistency.
+- **How**: Create seed script for test data.
+- **Code Example** (`db/seed.mjs`):
+
+  ```javascript
+  /**
+   * Seeds database with initial data.
+   * @module db/seed
+   */
+  import { PrismaClient } from '@prisma/client';
+  import bcrypt from 'bcrypt';
+
+  const prisma = new PrismaClient();
+
+  /**
+   * Seeds admin and sample users.
+   * @async
+   */
+  async function main() {
+    try {
+      console.log('Starting seeding...');
+
+      // Clear existing data (optional, ensures clean state)
+      await prisma.profile.deleteMany();
+      await prisma.settings.deleteMany();
+      await prisma.activityLog.deleteMany();
+      await prisma.user.deleteMany();
+
+      // Seed admin user
+      const adminPassword = bcrypt.hashSync('admin123', 10);
+      await prisma.user.upsert({
+        where: { email: 'admin@example.com' },
+        update: {},
+        create: {
+          email: 'admin@example.com',
+          passwordHash: adminPassword,
+          role: 'admin',
+          is_active: true,
+        },
+      });
+
+      // Seed sample users with profiles
+      const sampleUsers = [
+        {
+          email: 'user1@example.com',
+          passwordHash: bcrypt.hashSync('user123', 10),
+          role: 'user',
+          is_active: true,
+          profile: {
+            create: {
+              displayName: 'User One',
+              bio: 'Regular user with profile',
+            },
+          },
+        },
+        {
+          email: 'user2@example.com',
+          passwordHash: bcrypt.hashSync('user123', 10),
+          role: 'user',
+          is_active: true,
+          profile: {
+            create: {
+              displayName: 'User Two',
+            },
+          },
+          settings: {
+            create: {
+              theme: 'dark',
+              notifications: true,
+            },
+          },
+        },
+        {
+          email: 'disabled@example.com',
+          passwordHash: bcrypt.hashSync('user123', 10),
+          role: 'user',
+          is_active: false,
+        },
+      ];
+
+      // Create users with profiles using Promise.all for efficiency
+      const createdUsers = await Promise.all(
+        sampleUsers.map((user) =>
+          prisma.user.create({
+            data: user,
+          })
+        )
+      );
+
+      console.log(`Created ${createdUsers.length} sample users`);
+      console.log('Seeding completed successfully.');
+    } catch (err) {
+      console.error('Seeding failed:', err);
+      process.exit(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+
+  main();
+  ```
+
+  - **Explanation**:
+    - **Seeding**: Creates admin and sample users with profiles for testing CRUD operations.
+    - **ORM**: Uses `prisma.user.upsert` and `create` for efficient inserts.
+    - **Benefit**: Replaces V2's manual seeding, ensures consistent data.
 
 - **Testing**:
-  - Update `test-db.mjs` (from V1):
-    ```javascript
-    import { initDb } from './backend/data/db.mjs';
-    initDb();
-    console.log('Database initialized');
+  - **Command**: `npm run seed`.
+  - **Expected Output**:
     ```
-  - Run: `node test-db.mjs`.
-  - Check `authmini.db` with SQLite extension for new tables.
-  - **Expected Outcome**: `profiles`, `settings`, `activity_logs` tables exist, admin account seeded.
-  - **Common Issues**:
-    - **Directory missing**: Ensure `db/` exists.
-    - **Schema errors**: Verify SQL syntax.
+    Starting seeding...
+    Created 3 sample users
+    Seeding completed successfully.
+    ```
+  - **Command**: `psql -d authmini -c "SELECT email, role, is_active FROM \"User\";"`.
+  - **Expected Output**:
+    ```
+          email         |  role  | is_active
+    ----------------------+--------+-----------
+    admin@example.com    | admin  | t
+    user1@example.com    | user   | t
+    user2@example.com    | user   | t
+    disabled@example.com | user   | f
+    (4 rows)
+    ```
+  - **Possible Errors**:
+    - `Error: connect ECONNREFUSED`: PostgreSQL is not running.
+    - `PrismaClientValidationError`: Schema has changed since migration.
 
-### Step 8: Implement Service Layer
+# Prisma Studio: Database GUI
 
-- **Why Use a Service Layer?**  
-  The **service layer** is a new architectural concept introduced in V2 to improve code organization and maintainability. Here’s why it’s included, why these specific files were chosen, and how they’re structured:
+Before moving on to Step 9, you can use Prisma Studio to visually inspect and manage your database tables. This provides a convenient graphical interface for viewing and modifying data.
 
-  - **Purpose**:
+```bash
+npm run prisma:studio
+```
 
-    - **Separation of Concerns**: Moves business logic (e.g., updating user profiles, logging activities) out of route handlers, allowing routes to focus on HTTP request/response handling.
-    - **Reusability**: Centralizes logic so it can be reused across multiple routes or modules (e.g., updating a profile in both user and admin routes).
-    - **Scalability**: Simplifies adding new features by reducing code duplication and making the codebase easier to extend for larger systems like AuthCloud.
-    - **Testability**: Isolates business logic, making it easier to write unit and integration tests without involving HTTP layers.
+This opens a browser interface (usually at http://localhost:5555) where you'll see:
 
-  - **Why These Files?**:
+- **User table**: ID, email, passwordHash, role, is_active, createdAt
+- **Profile table**: userId, displayName, bio, avatarUrl
+- **Settings table**: userId, theme, notifications
+- **ActivityLog table**: id, userId, action, createdAt
 
-    - **`userService.mjs`**:
-      - **Purpose**: Handles user-related operations like profile updates, password changes, settings management, and toggling active status.
-      - **Rationale**: User management is the core of AuthMini, and centralizing these operations ensures consistency across routes (e.g., `/api/profile`, `/api/users/:id/toggle`). It supports V2’s new features like profile editing and settings.
-    - **`activityService.mjs`**:
-      - **Purpose**: Manages activity logging for tracking user actions (e.g., login, profile updates).
-      - **Rationale**: Activity logs are a new V2 feature for admin auditing. Isolating this logic allows reuse across routes (e.g., logging in `/api/register`, `/api/profile`) and simplifies log retrieval for the admin dashboard.
-    - **Why Only Two Files?**:
-      - **Simplicity**: V2 focuses on teaching the service layer concept without overwhelming beginners with too many services.
-      - **Relevance**: These files cover the primary V2 features (user management, activity tracking), providing clear examples of service layer benefits.
-      - **Incremental Learning**: Introduces the pattern for future expansion (e.g., adding `emailService.mjs` in V3).
+This is a great way to verify that your migrations have correctly set up the database schema and that your seed data has been properly inserted before proceeding to implement the user service with CRUD operations
 
-  - **Structuring**:
+### Step 9: Implement User Service with CRUD Operations
 
-    - **Directory**: The `backend/services/` folder separates services from `routes/` and `data/`, clearly delineating responsibilities:
-      - `routes/`: Handles HTTP requests/responses.
-      - `services/`: Manages business logic (e.g., updating profiles, logging actions).
-      - `data/`: Handles database interactions (e.g., SQL queries).
-    - **File Naming**: `userService.mjs` and `activityService.mjs` use descriptive names following the `[domain]Service.mjs` convention for clarity.
-    - **Exports**: Each service exports specific functions (e.g., `updateUserProfile`, `logActivity`) to encapsulate logic and provide a clean API for routes.
-    - **Why This Structure?**:
-      - **Clarity**: A dedicated `services/` folder makes the codebase easier to navigate.
-      - **Modularity**: Encourages adding new services as the app grows.
-      - **Alignment with AuthCloud**: Mimics real-world backend patterns where services handle complex logic, preparing for larger systems.
-
-  - **Learning Outcome**:
-    - Understand how to organize code for maintainability.
-    - Learn to separate business logic from HTTP handling.
-    - Prepare for testing by isolating logic in services.
-
-- **How**: Create `userService.mjs` and `activityService.mjs`.
+- **Why**: Provide comprehensive Create, Read, Update, Delete operations for user management.
+- **How**: Update `userService.mjs` with Prisma queries.
 - **Code Example** (`backend/services/userService.mjs`):
 
   ```javascript
   /**
-   * User service for managing user operations.
+   * User service for AuthMini.
    * @module services/userService
    */
   import bcrypt from 'bcrypt';
@@ -641,156 +899,419 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   import { getDb } from '../data/db.mjs';
   import { logActivity } from './activityService.mjs';
 
-  // Load environment variables
   config();
 
   /**
    * Registers a new user.
    * @param {string} email - User's email.
    * @param {string} password - User's password.
-   * @returns {Object} Object containing user ID.
-   * @throws {Error} If email already exists.
+   * @returns {Object} User ID.
+   * @throws {Error} If email exists.
    * @async
    */
   export async function registerUser(email, password) {
-    // Get database instance
     const db = getDb();
-    // Check for existing user
-    const existingUser = db
-      .prepare('SELECT id FROM users WHERE email = ?')
-      .get(email);
-    if (existingUser) {
-      throw new Error('Email already exists');
-    }
-    // Hash password for secure storage
+    const existingUser = await db.user.findUnique({ where: { email } });
+    if (existingUser) throw new Error('Email already exists');
     const passwordHash = await bcrypt.hash(password, 10);
-    // Insert new user into database
-    const user = db
-      .prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
-      .run(email, passwordHash);
-    // Log registration activity
-    logActivity(user.lastInsertRowid, 'User registered');
-    return { id: user.lastInsertRowid };
+    const user = await db.user.create({
+      data: { email, passwordHash },
+    });
+    await logActivity(user.id, 'User registered');
+    return { id: user.id };
   }
 
   /**
-   * Logs in a user and generates a JWT token.
+   * Logs in a user.
    * @param {string} email - User's email.
    * @param {string} password - User's password.
-   * @returns {Object} Object containing token and user data.
-   * @throws {Error} If credentials are invalid or account is disabled.
+   * @returns {Object} Token and user data.
+   * @throws {Error} If credentials invalid.
    * @async
    */
   export async function loginUser(email, password) {
-    // Retrieve user by email
-    const user = getUserByEmail(email);
-    // Validate user existence, active status, and password
+    const db = getDb();
+    const user = await db.user.findUnique({ where: { email } });
     if (
       !user ||
       !user.is_active ||
-      !(await bcrypt.compare(password, user.password_hash))
+      !(await bcrypt.compare(password, user.passwordHash))
     ) {
       throw new Error('Invalid credentials or account disabled');
     }
-    // Generate JWT token with user details
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    // Log login activity
-    logActivity(user.id, 'User logged in');
-    return { token, user: { email: user.email, role: user.role } };
+    await logActivity(user.id, 'User logged in');
+    return { token, user: { id: user.id, email: user.email, role: user.role } };
   }
 
   /**
-   * Gets a user by email.
-   * @param {string} email - User's email.
-   * @returns {Object|null} User object or null.
+   * Gets all users with optional filtering.
+   * @param {Object} filters - Optional filters (search, active).
+   * @returns {Array} Array of users.
+   * @async
    */
-  export function getUserByEmail(email) {
-    // Get database instance
+  export async function getUsers(filters = {}) {
     const db = getDb();
-    // Query user by email
-    return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const { search, active } = filters;
+
+    const where = {};
+    if (search) {
+      where.email = { contains: search, mode: 'insensitive' };
+    }
+    if (active !== undefined) {
+      where.is_active = active === 'true' || active === true;
+    }
+
+    return db.user.findMany({
+      where,
+      include: { profile: true },
+      orderBy: { id: 'asc' },
+    });
   }
 
   /**
-   * Updates a user's profile.
+   * Gets a user by ID with profile.
+   * @param {number} userId - User ID.
+   * @returns {Object} User with profile.
+   * @throws {Error} If user not found.
+   * @async
+   */
+  export async function getUserById(userId) {
+    const db = getDb();
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: { profile: true, settings: true },
+    });
+
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
+    return user;
+  }
+
+  /**
+   * Updates user profile.
    * @param {number} userId - User's ID.
-   * @param {Object} profileData - Profile data (display_name, bio, avatar_url).
+   * @param {Object} profileData - Profile data.
    * @returns {Object} Updated profile.
+   * @async
    */
-  export function updateUserProfile(userId, profileData) {
-    // Get database instance
+  export async function updateUserProfile(userId, profileData) {
     const db = getDb();
-    // Insert or update profile data
-    db.prepare(
-      'INSERT OR REPLACE INTO profiles (user_id, display_name, bio, avatar_url) VALUES (?, ?, ?, ?)'
-    ).run(
-      userId,
-      profileData.display_name,
-      profileData.bio,
-      profileData.avatar_url
-    );
+
+    // Verify user exists
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
+    await db.profile.upsert({
+      where: { userId },
+      update: profileData,
+      create: { userId, ...profileData },
+    });
+
+    await logActivity(userId, 'Profile updated');
     return profileData;
   }
 
   /**
-   * Updates a user's settings.
+   * Updates user settings.
    * @param {number} userId - User's ID.
-   * @param {Object} settingsData - Settings data (theme, notifications).
+   * @param {Object} settingsData - Settings data.
    * @returns {Object} Updated settings.
+   * @async
    */
-  export function updateUserSettings(userId, settingsData) {
-    // Get database instance
+  export async function updateUserSettings(userId, settingsData) {
     const db = getDb();
-    // Insert or update settings data
-    db.prepare(
-      'INSERT OR REPLACE INTO settings (user_id, theme, notifications) VALUES (?, ?, ?)'
-    ).run(userId, settingsData.theme, settingsData.notifications);
+
+    // Verify user exists
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
+    await db.settings.upsert({
+      where: { userId },
+      update: settingsData,
+      create: { userId, ...settingsData },
+    });
+
+    await logActivity(userId, 'Settings updated');
     return settingsData;
   }
 
   /**
-   * Changes a user's password.
+   * Changes user password.
    * @param {number} userId - User's ID.
    * @param {string} newPassword - New password.
+   * @returns {Object} Success message.
    * @async
    */
   export async function changeUserPassword(userId, newPassword) {
-    // Get database instance
     const db = getDb();
-    // Hash new password for secure storage
+
+    // Verify user exists
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    // Update user password in database
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
-      passwordHash,
-      userId
-    );
+    await db.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    await logActivity(userId, 'Password changed');
+    return { message: 'Password updated successfully' };
   }
 
   /**
-   * Toggles a user's active status.
+   * Sets user active status.
    * @param {number} userId - User's ID.
-   * @param {boolean} isActive - Active status.
+   * @param {boolean} isActive - Active status to set.
+   * @returns {Object} Updated user record.
+   * @throws {Error} If user not found or invalid input.
+   * @async
    */
-  export function toggleUserActive(userId, isActive) {
-    // Get database instance
+  export async function setUserActive(userId, isActive) {
     const db = getDb();
-    // Update user active status
-    db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(
-      isActive ? 1 : 0,
-      userId
-    );
+
+    // Validate inputs
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new Error('userId must be a positive integer');
+    }
+
+    if (typeof isActive !== 'boolean') {
+      throw new Error('isActive must be a boolean');
+    }
+
+    try {
+      const user = await db.user.update({
+        where: { id: userId },
+        data: { is_active: isActive },
+      });
+
+      await logActivity(userId, `User ${isActive ? 'enabled' : 'disabled'}`);
+
+      return user;
+    } catch (err) {
+      if (err.code === 'P2025') {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Deletes a user.
+   * @param {number} userId - User's ID.
+   * @returns {Object} Success message.
+   * @throws {Error} If user not found.
+   * @async
+   */
+  export async function deleteUser(userId) {
+    const db = getDb();
+
+    try {
+      // Delete related records first due to foreign key constraints
+      await db.profile.deleteMany({ where: { userId } });
+      await db.settings.deleteMany({ where: { userId } });
+      await db.activityLog.deleteMany({ where: { userId } });
+
+      // Delete the user
+      await db.user.delete({ where: { id: userId } });
+
+      return { message: `User with ID ${userId} deleted successfully` };
+    } catch (err) {
+      if (err.code === 'P2025') {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+      throw err;
+    }
   }
   ```
 
+- **Testing** (`tests/unit/userService.test.mjs`):
+
+  ```javascript
+  /**
+   * Unit tests for User Service.
+   * @module tests/unit/userService
+   */
+  import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+  import {
+    registerUser,
+    loginUser,
+    getUsers,
+    getUserById,
+    updateUserProfile,
+    setUserActive,
+    deleteUser,
+  } from '../../backend/services/userService.mjs';
+  import { initDb } from '../../backend/data/db.mjs';
+  import { logActivity } from '../../backend/services/activityService.mjs';
+
+  // Mock activityService
+  vi.mock('../../backend/services/activityService.mjs', () => ({
+    logActivity: vi.fn().mockResolvedValue({}),
+  }));
+
+  describe('User Service', () => {
+    let db;
+    let testUserId;
+
+    beforeAll(async () => {
+      db = initDb();
+      // Create a test user for operations
+      const result = await registerUser(
+        'test-service@example.com',
+        'password123'
+      );
+      testUserId = result.id;
+    });
+
+    afterAll(async () => {
+      // Clean up test data
+      try {
+        await db.profile.deleteMany({ where: { userId: testUserId } });
+        await db.user.delete({ where: { id: testUserId } });
+      } catch (err) {
+        // Already deleted in test
+      }
+      await db.$disconnect();
+    });
+
+    it('should register a new user', async () => {
+      const result = await registerUser('new-user@example.com', 'password123');
+      expect(result.id).toBeDefined();
+      expect(logActivity).toHaveBeenCalled();
+
+      // Clean up
+      await db.user.delete({ where: { id: result.id } });
+    });
+
+    it('should not register duplicate email', async () => {
+      await expect(
+        registerUser('test-service@example.com', 'password123')
+      ).rejects.toThrow('Email already exists');
+    });
+
+    it('should login a user', async () => {
+      const result = await loginUser('test-service@example.com', 'password123');
+      expect(result.token).toBeDefined();
+      expect(result.user.email).toBe('test-service@example.com');
+      expect(logActivity).toHaveBeenCalled();
+    });
+
+    it('should reject login with wrong password', async () => {
+      await expect(
+        loginUser('test-service@example.com', 'wrongpassword')
+      ).rejects.toThrow('Invalid credentials');
+    });
+
+    it('should get all users', async () => {
+      const users = await getUsers();
+      expect(Array.isArray(users)).toBe(true);
+      expect(users.length).toBeGreaterThan(0);
+    });
+
+    it('should filter users by search', async () => {
+      const users = await getUsers({ search: 'test-service' });
+      expect(users.length).toBe(1);
+      expect(users[0].email).toBe('test-service@example.com');
+    });
+
+    it('should get a user by ID', async () => {
+      const user = await getUserById(testUserId);
+      expect(user.id).toBe(testUserId);
+      expect(user.email).toBe('test-service@example.com');
+    });
+
+    it('should throw error for non-existent user ID', async () => {
+      await expect(getUserById(999999)).rejects.toThrow('not found');
+    });
+
+    it('should update user profile', async () => {
+      const profileData = {
+        displayName: 'Test User',
+        bio: 'This is a test profile',
+      };
+
+      const result = await updateUserProfile(testUserId, profileData);
+      expect(result).toEqual(profileData);
+      expect(logActivity).toHaveBeenCalled();
+
+      // Verify update
+      const user = await getUserById(testUserId);
+      expect(user.profile.displayName).toBe('Test User');
+    });
+
+    it('should set user active status', async () => {
+      const user = await setUserActive(testUserId, false);
+      expect(user.is_active).toBe(false);
+      expect(logActivity).toHaveBeenCalled();
+
+      // Reset status for other tests
+      await setUserActive(testUserId, true);
+    });
+
+    it('should delete a user', async () => {
+      // Create a user to delete
+      const { id } = await registerUser('to-delete@example.com', 'password123');
+
+      const result = await deleteUser(id);
+      expect(result.message).toContain('deleted successfully');
+
+      // Verify deletion
+      await expect(getUserById(id)).rejects.toThrow('not found');
+    });
+  });
+  ```
+
+- **Running Tests**:
+
+  - **Command**: `npm run test  tests/unit/userService.test.mjs`
+  - **Expected Output**:
+
+    ```
+    ✓ tests/unit/userService.test.mjs (11 tests) 689ms
+
+    Test Files  1 passed (1)
+    Tests       11 passed (11)
+    Start at    10:15:20
+    Duration    3.12s
+    ```
+
+  - **Possible Errors**:
+    - `Cannot find module '../../backend/services/userService.mjs'`: Check file paths.
+    - `PrismaClientKnownRequestError`: Database connection issues.
+    - `Error: connect ETIMEDOUT`: Database server not responding.
+
+### Step 10: Implement Activity Service
+
+- **Why**: Provides activity logging for audit purposes.
+- **How**: Update `activityService.mjs` with Prisma.
 - **Code Example** (`backend/services/activityService.mjs`):
 
   ```javascript
   /**
-   * Activity log service for tracking user actions.
+   * Activity log service for AuthMini.
    * @module services/activityService
    */
   import { getDb } from '../data/db.mjs';
@@ -799,76 +1320,140 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
    * Logs a user action.
    * @param {number} userId - User's ID.
    * @param {string} action - Action description.
+   * @returns {Object} Created log entry.
+   * @async
    */
-  export function logActivity(userId, action) {
-    // Get database instance
+  export async function logActivity(userId, action) {
     const db = getDb();
-    // Insert activity log entry
-    db.prepare('INSERT INTO activity_logs (user_id, action) VALUES (?, ?)').run(
-      userId,
-      action
-    );
+    return db.activityLog.create({
+      data: { userId, action },
+    });
   }
 
   /**
    * Gets activity logs with optional filters.
-   * @param {Object} filters - Filters (userId, startDate, endDate).
+   * @param {Object} filters - Filters (userId, startDate).
    * @returns {Array} Array of log entries.
+   * @async
    */
-  export function getActivityLogs(filters = {}) {
-    // Get database instance
+  export async function getActivityLogs(filters = {}) {
     const db = getDb();
-    // Build dynamic query with filters
-    let query = 'SELECT * FROM activity_logs';
-    const params = [];
+    const where = {};
+
     if (filters.userId) {
-      query += ' WHERE user_id = ?';
-      params.push(filters.userId);
+      where.userId = Number(filters.userId);
     }
+
     if (filters.startDate) {
-      query += params.length ? ' AND' : ' WHERE';
-      query += ' created_at >= ?';
-      params.push(filters.startDate);
+      where.createdAt = { gte: new Date(filters.startDate) };
     }
-    if (filters.endDate) {
-      query += params.length ? ' AND' : ' WHERE';
-      query += ' created_at <= ?';
-      params.push(filters.endDate);
-    }
-    // Execute query with parameters
-    return db.prepare(query).all(...params);
+
+    return db.activityLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { email: true } } },
+    });
   }
   ```
 
-- **Testing**:
-  - Create `test-services.mjs`:
-    ```javascript
-    import { initDb } from './backend/data/db.mjs';
-    import { updateUserProfile } from './backend/services/userService.mjs';
-    import { logActivity } from './backend/services/activityService.mjs';
-    // Initialize database
-    initDb();
-    // Test profile update
-    updateUserProfile(1, {
-      display_name: 'Admin',
-      bio: 'Admin bio',
-      avatar_url: '',
+- **Testing** (`tests/unit/activityService.test.mjs`):
+
+  ```javascript
+  /**
+   * Unit tests for Activity Service.
+   * @module tests/unit/activityService
+   */
+  import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+  import {
+    logActivity,
+    getActivityLogs,
+  } from '../../backend/services/activityService.mjs';
+  import { registerUser } from '../../backend/services/userService.mjs';
+  import { initDb } from '../../backend/data/db.mjs';
+
+  describe('Activity Service', () => {
+    let db;
+    let testUserId;
+
+    beforeAll(async () => {
+      db = initDb();
+      // Create a test user for operations
+      const result = await registerUser(
+        'test-activity@example.com',
+        'password123'
+      );
+      testUserId = result.id;
     });
-    // Test activity logging
-    logActivity(1, 'Profile updated');
-    console.log('Services tested');
+
+    afterAll(async () => {
+      // Clean up test data
+      await db.activityLog.deleteMany({ where: { userId: testUserId } });
+      await db.user.delete({ where: { id: testUserId } });
+      await db.$disconnect();
+    });
+
+    it('should log an activity', async () => {
+      const action = 'Test action';
+      const log = await logActivity(testUserId, action);
+
+      expect(log.id).toBeDefined();
+      expect(log.userId).toBe(testUserId);
+      expect(log.action).toBe(action);
+    });
+
+    it('should get activity logs', async () => {
+      // Log another activity
+      await logActivity(testUserId, 'Another test action');
+
+      const logs = await getActivityLogs({ userId: testUserId });
+
+      expect(Array.isArray(logs)).toBe(true);
+      expect(logs.length).toBeGreaterThanOrEqual(2);
+      expect(logs[0].userId).toBe(testUserId);
+    });
+
+    it('should filter logs by date', async () => {
+      const startDate = new Date();
+
+      // Ensure date is slightly in the past
+      startDate.setSeconds(startDate.getSeconds() - 1);
+
+      // Log a new action
+      await logActivity(testUserId, 'Recent action');
+
+      const logs = await getActivityLogs({
+        userId: testUserId,
+        startDate: startDate.toISOString(),
+      });
+
+      expect(logs.length).toBeGreaterThanOrEqual(1);
+      expect(logs[0].action).toBe('Recent action');
+    });
+  });
+  ```
+
+- **Running Tests**:
+
+  - **Command**: `npm run test  tests/unit/activityService.test.mjs`
+  - **Expected Output**:
+
     ```
-  - Run: `node test-services.mjs`.
-  - Check `authmini.db` for profile and log entries.
-  - **Expected Outcome**: Profile and log tables updated.
-  - **Common Issues**:
-    - **Database errors**: Ensure `initDb` ran.
-    - **Database overwritten**: Note that `authmini.db` in Git may reset data on `git pull`.
+    ✓ tests/unit/activityService.test.mjs (3 tests) 154ms
 
-### Step 9: Update Backend Routes
+    Test Files  1 passed (1)
+    Tests       3 passed (3)
+    Start at    10:25:30
+    Duration    1.84s
+    ```
 
-- **Why**: Add profile, password, search, and enable/disable routes using the service layer, with Render-compatible server configuration.
-- **How**: Update `auth.mjs`, `users.mjs`, and `server.mjs`.
+  - **Possible Errors**:
+    - `Cannot find module '../../backend/services/activityService.mjs'`: Check file paths.
+    - `PrismaClientKnownRequestError`: Database connection issues.
+
+### Step 11: Update Auth Routes
+
+- **Why**: Routes handle HTTP requests, delegating logic to services.
+- **How**: Update `auth.mjs` to work with the updated services.
 - **Code Example** (`backend/routes/auth.mjs`):
 
   ```javascript
@@ -881,120 +1466,344 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   import {
     registerUser,
     loginUser,
+    getUserById,
     updateUserProfile,
     updateUserSettings,
     changeUserPassword,
   } from '../services/userService.mjs';
-  import { logActivity } from '../services/activityService.mjs';
 
-  // Load environment variables
   config();
 
   /**
-   * Registers auth routes.
+   * Registers authentication routes.
    * @param {FastifyInstance} fastify - Fastify instance.
    * @param {Object} options - Route options.
    * @async
    */
   export async function registerRoutes(fastify, options) {
-    // Handle user registration
     fastify.post('/register', async (request, reply) => {
       const { email, password } = request.body;
+
+      if (!email || !password) {
+        return reply
+          .code(400)
+          .send({ error: 'Email and password are required' });
+      }
+
       try {
-        // Delegate registration to service layer
         await registerUser(email, password);
-        // Send success response
-        reply.code(201).send({ message: 'User registered' });
+        return reply.code(201).send({ message: 'User registered' });
       } catch (err) {
-        // Handle errors (e.g., duplicate email)
-        reply.code(400).send({ error: `Registration failed: ${err.message}` });
+        return reply.code(400).send({ error: err.message });
       }
     });
 
-    // Handle user login
     fastify.post('/login', async (request, reply) => {
       const { email, password } = request.body;
+
+      if (!email || !password) {
+        return reply
+          .code(400)
+          .send({ error: 'Email and password are required' });
+      }
+
       try {
-        // Delegate login to service layer
-        const { token, user } = await loginUser(email, password);
-        // Send token and user data
-        reply.send({ token, user });
+        const result = await loginUser(email, password);
+        return reply.send(result);
       } catch (err) {
-        // Handle invalid credentials
-        reply.code(401).send({ error: err.message });
+        return reply.code(401).send({ error: err.message });
       }
     });
 
-    // Handle logout (client-side token removal)
     fastify.post('/logout', async (request, reply) => {
-      reply.send({ message: 'Logged out' });
+      // Server-side there's not much to do for logout with JWT
+      // The client will remove the token
+      return reply.send({ message: 'Logged out' });
     });
 
-    // Handle profile updates
+    fastify.get('/me', async (request, reply) => {
+      const token = request.headers.authorization?.replace('Bearer ', '');
+
+      if (!token) {
+        return reply.code(401).send({ error: 'No token provided' });
+      }
+
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await getUserById(decoded.id);
+
+        // Remove sensitive fields
+        delete user.passwordHash;
+
+        return reply.send({ user });
+      } catch (err) {
+        return reply.code(401).send({ error: 'Invalid token' });
+      }
+    });
+
     fastify.post('/profile', async (request, reply) => {
-      // Extract token from Authorization header
       const token = request.headers.authorization?.replace('Bearer ', '');
-      if (!token) return reply.code(401).send({ error: 'No token provided' });
+
+      if (!token) {
+        return reply.code(401).send({ error: 'No token provided' });
+      }
+
       try {
-        // Verify JWT token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Get profile data from request
-        const profileData = request.body;
-        // Update profile via service layer
-        updateUserProfile(decoded.id, profileData);
-        // Log profile update
-        logActivity(decoded.id, 'Profile updated');
-        reply.send({ message: 'Profile updated' });
+        const { displayName, bio, avatarUrl } = request.body;
+
+        await updateUserProfile(decoded.id, { displayName, bio, avatarUrl });
+
+        return reply.send({ message: 'Profile updated' });
       } catch (err) {
-        // Handle invalid token
-        reply.code(401).send({ error: 'Invalid token' });
+        return reply.code(401).send({ error: 'Invalid token' });
       }
     });
 
-    // Handle password changes
-    fastify.post('/password', async (request, reply) => {
-      // Extract token from Authorization header
-      const token = request.headers.authorization?.replace('Bearer ', '');
-      if (!token) return reply.code(401).send({ error: 'No token provided' });
-      try {
-        // Verify JWT token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Get new password from request
-        const { newPassword } = request.body;
-        // Update password via service layer
-        await changeUserPassword(decoded.id, newPassword);
-        // Log password change
-        logActivity(decoded.id, 'Password changed');
-        reply.send({ message: 'Password updated' });
-      } catch (err) {
-        // Handle invalid token
-        reply.code(401).send({ error: 'Invalid token' });
-      }
-    });
-
-    // Handle settings updates
     fastify.post('/settings', async (request, reply) => {
-      // Extract token from Authorization header
       const token = request.headers.authorization?.replace('Bearer ', '');
-      if (!token) return reply.code(401).send({ error: 'No token provided' });
+
+      if (!token) {
+        return reply.code(401).send({ error: 'No token provided' });
+      }
+
       try {
-        // Verify JWT token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Get settings data from request
-        const settingsData = request.body;
-        // Update settings via service layer
-        updateUserSettings(decoded.id, settingsData);
-        // Log settings update
-        logActivity(decoded.id, 'Settings updated');
-        reply.send({ message: 'Settings updated' });
+        const { theme, notifications } = request.body;
+
+        await updateUserSettings(decoded.id, { theme, notifications });
+
+        return reply.send({ message: 'Settings updated' });
       } catch (err) {
-        // Handle invalid token
-        reply.code(401).send({ error: 'Invalid token' });
+        return reply.code(401).send({ error: 'Invalid token' });
+      }
+    });
+
+    fastify.post('/password', async (request, reply) => {
+      const token = request.headers.authorization?.replace('Bearer ', '');
+
+      if (!token) {
+        return reply.code(401).send({ error: 'No token provided' });
+      }
+
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const { newPassword } = request.body;
+
+        if (!newPassword || newPassword.length < 6) {
+          return reply.code(400).send({
+            error: 'New password is required and must be at least 6 characters',
+          });
+        }
+
+        await changeUserPassword(decoded.id, newPassword);
+
+        return reply.send({ message: 'Password updated' });
+      } catch (err) {
+        return reply.code(401).send({ error: 'Invalid token' });
       }
     });
   }
   ```
 
+- **Testing** (`tests/routes/auth.test.mjs`):
+
+  ```javascript
+  /**
+   * Tests for Auth Routes.
+   * @module tests/routes/auth
+   */
+  import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+  import Fastify from 'fastify';
+  import jwt from 'jsonwebtoken';
+  import { registerRoutes } from '../../backend/routes/auth.mjs';
+  import * as userService from '../../backend/services/userService.mjs';
+
+  // Mock the user service
+  vi.mock('../../backend/services/userService.mjs');
+
+  describe('Auth Routes', () => {
+    let fastify;
+
+    beforeAll(async () => {
+      // Setup fastify instance
+      fastify = Fastify({ logger: false });
+      await fastify.register(registerRoutes, { prefix: '/api' });
+      await fastify.ready();
+
+      // Setup mock implementations
+      userService.registerUser = vi.fn().mockResolvedValue({ id: 1 });
+      userService.loginUser = vi.fn().mockResolvedValue({
+        token: 'fake-token',
+        user: { id: 1, email: 'test@example.com', role: 'user' },
+      });
+      userService.getUserById = vi.fn().mockResolvedValue({
+        id: 1,
+        email: 'test@example.com',
+        role: 'user',
+        profile: null,
+      });
+      userService.updateUserProfile = vi.fn().mockResolvedValue({});
+      userService.updateUserSettings = vi.fn().mockResolvedValue({});
+      userService.changeUserPassword = vi.fn().mockResolvedValue({});
+
+      // Mock JWT verification
+      vi.spyOn(jwt, 'verify').mockImplementation(() => ({
+        id: 1,
+        email: 'test@example.com',
+        role: 'user',
+      }));
+    });
+
+    afterAll(async () => {
+      await fastify.close();
+      vi.restoreAllMocks();
+    });
+
+    it('POST /api/register should register a user', async () => {
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/api/register',
+        payload: { email: 'test@example.com', password: 'password123' },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(JSON.parse(response.body)).toEqual({ message: 'User registered' });
+      expect(userService.registerUser).toHaveBeenCalledWith(
+        'test@example.com',
+        'password123'
+      );
+    });
+
+    it('POST /api/register should validate required fields', async () => {
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/api/register',
+        payload: { email: 'test@example.com' }, // Missing password
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.body).error).toContain('required');
+    });
+
+    it('POST /api/login should authenticate a user', async () => {
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/api/login',
+        payload: { email: 'test@example.com', password: 'password123' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.token).toBe('fake-token');
+      expect(userService.loginUser).toHaveBeenCalledWith(
+        'test@example.com',
+        'password123'
+      );
+    });
+
+    it('GET /api/me should return user profile', async () => {
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/api/me',
+        headers: { Authorization: 'Bearer fake-token' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.user.email).toBe('test@example.com');
+      expect(userService.getUserById).toHaveBeenCalledWith(1);
+    });
+
+    it('POST /api/profile should update user profile', async () => {
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/api/profile',
+        headers: { Authorization: 'Bearer fake-token' },
+        payload: { displayName: 'Test User', bio: 'Test bio' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({ message: 'Profile updated' });
+      expect(userService.updateUserProfile).toHaveBeenCalledWith(1, {
+        displayName: 'Test User',
+        bio: 'Test bio',
+        avatarUrl: undefined,
+      });
+    });
+
+    it('POST /api/settings should update user settings', async () => {
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/api/settings',
+        headers: { Authorization: 'Bearer fake-token' },
+        payload: { theme: 'dark', notifications: true },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({
+        message: 'Settings updated',
+      });
+      expect(userService.updateUserSettings).toHaveBeenCalledWith(1, {
+        theme: 'dark',
+        notifications: true,
+      });
+    });
+
+    it('POST /api/password should update user password', async () => {
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/api/password',
+        headers: { Authorization: 'Bearer fake-token' },
+        payload: { newPassword: 'newpassword123' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({
+        message: 'Password updated',
+      });
+      expect(userService.changeUserPassword).toHaveBeenCalledWith(
+        1,
+        'newpassword123'
+      );
+    });
+
+    it('POST /api/logout should acknowledge logout', async () => {
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/api/logout',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({ message: 'Logged out' });
+    });
+  });
+  ```
+
+- **Running Tests**:
+
+  - **Command**: `npm run test  tests/routes/auth.test.mjs`
+
+  - **Expected Output**:
+
+    ```
+    ✓ tests/routes/auth.test.mjs (8 tests) 46ms
+
+    Test Files  1 passed (1)
+    Tests       8 passed (8)
+    Start at    10:35:20
+    Duration    1.08s
+    ```
+
+  - **Possible Errors**:
+    - `ReferenceError: jwt is not defined`: Forgot to import or mock JWT module.
+    - `Cannot find module 'fastify'`: Run `npm install`.
+    - `Cannot spyOn on a primitive value`: Verify mocking implementation.
+
+### Step 12: Update User Routes (Admin CRUD)
+
+- **Why**: Provides admin-only routes for user management.
+- **How**: Update `users.mjs` with CRUD operations.
 - **Code Example** (`backend/routes/users.mjs`):
 
   ```javascript
@@ -1004,186 +1813,470 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
    */
   import jwt from 'jsonwebtoken';
   import { config } from 'dotenv';
-  import { getDb } from '../data/db.mjs';
-  import { toggleUserActive } from '../services/userService.mjs';
-  import { logActivity } from '../services/activityService.mjs';
+  import {
+    getUsers,
+    getUserById,
+    setUserActive,
+    deleteUser,
+  } from '../services/userService.mjs';
+  import { getActivityLogs } from '../services/activityService.mjs';
 
-  // Load environment variables
   config();
 
   /**
-   * Registers user routes.
+   * Verifies admin role from token.
+   * @param {string} token - JWT token.
+   * @returns {Object} Decoded token.
+   * @throws {Error} If not admin.
+   */
+  function verifyAdmin(token) {
+    if (!token) {
+      throw new Error('No token provided');
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role !== 'admin') {
+      throw new Error('Admin access required');
+    }
+
+    return decoded;
+  }
+
+  /**
+   * Registers user management routes.
    * @param {FastifyInstance} fastify - Fastify instance.
    * @param {Object} options - Route options.
    * @async
    */
   export async function registerUserRoutes(fastify, options) {
-    // Handle user list retrieval
+    // Get all users (admin only)
     fastify.get('/users', async (request, reply) => {
-      // Extract token from Authorization header
-      const token = request.headers.authorization?.replace('Bearer ', '');
-      if (!token) return reply.code(401).send({ error: 'No token provided' });
       try {
-        // Verify JWT token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Restrict to admin users
-        if (decoded.role !== 'admin')
-          return reply.code(403).send({ error: 'Admin access required' });
-        // Get database instance
-        const db = getDb();
-        // Get search and active filters from query
+        const token = request.headers.authorization?.replace('Bearer ', '');
+        verifyAdmin(token);
+
         const { search, active } = request.query;
-        // Build dynamic query for users
-        let query = 'SELECT id, email, role, created_at, is_active FROM users';
-        const params = [];
-        if (search) {
-          query += ' WHERE email LIKE ?';
-          params.push(`%${search}%`);
-        }
-        if (active !== undefined) {
-          query += params.length ? ' AND' : ' WHERE';
-          query += ' is_active = ?';
-          params.push(active === 'true' ? 1 : 0);
-        }
-        // Execute query to fetch users
-        const users = db.prepare(query).all(...params);
-        // Send user list
-        reply.send({ users });
+        const users = await getUsers({ search, active });
+
+        return reply.send({ users });
       } catch (err) {
-        // Handle invalid token
-        reply.code(401).send({ error: 'Invalid token' });
+        if (err.message === 'No token provided') {
+          return reply.code(401).send({ error: 'No token provided' });
+        }
+        if (err.message === 'Admin access required') {
+          return reply.code(403).send({ error: 'Admin access required' });
+        }
+
+        return reply.code(401).send({ error: 'Invalid token' });
       }
     });
 
-    // Handle user active status toggle
-    fastify.post('/users/:id/toggle', async (request, reply) => {
-      // Extract token from Authorization header
-      const token = request.headers.authorization?.replace('Bearer ', '');
-      if (!token) return reply.code(401).send({ error: 'No token provided' });
+    // Get user by ID (admin only)
+    fastify.get('/users/:id', async (request, reply) => {
       try {
-        // Verify JWT token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Restrict to admin users
-        if (decoded.role !== 'admin')
-          return reply.code(403).send({ error: 'Admin access required' });
-        // Get user ID from route parameter
+        const token = request.headers.authorization?.replace('Bearer ', '');
+        verifyAdmin(token);
+
         const userId = parseInt(request.params.id, 10);
-        // Get active status from request
-        const { isActive } = request.body;
-        // Toggle user active status via service layer
-        toggleUserActive(userId, isActive);
-        // Log toggle action
-        logActivity(
-          userId,
-          `User ${isActive ? 'enabled' : 'disabled'} by admin`
-        );
-        // Send success response
-        reply.send({ message: `User ${isActive ? 'enabled' : 'disabled'}` });
+
+        if (isNaN(userId) || userId <= 0) {
+          return reply.code(400).send({ error: 'Invalid user ID' });
+        }
+
+        const user = await getUserById(userId);
+
+        // Remove sensitive data
+        delete user.passwordHash;
+
+        return reply.send({ user });
       } catch (err) {
-        // Handle invalid token
-        reply.code(401).send({ error: 'Invalid token' });
+        if (err.message === 'No token provided') {
+          return reply.code(401).send({ error: 'No token provided' });
+        }
+        if (err.message === 'Admin access required') {
+          return reply.code(403).send({ error: 'Admin access required' });
+        }
+        if (err.message.includes('not found')) {
+          return reply.code(404).send({ error: err.message });
+        }
+
+        return reply.code(401).send({ error: 'Invalid token' });
+      }
+    });
+
+    // Update user active status (admin only)
+    fastify.patch('/users/:id/active', async (request, reply) => {
+      try {
+        const token = request.headers.authorization?.replace('Bearer ', '');
+        verifyAdmin(token);
+
+        const userId = parseInt(request.params.id, 10);
+        const { isActive } = request.body;
+
+        if (isNaN(userId) || userId <= 0) {
+          return reply.code(400).send({ error: 'Invalid user ID' });
+        }
+
+        if (typeof isActive !== 'boolean') {
+          return reply.code(400).send({ error: 'isActive must be a boolean' });
+        }
+
+        const user = await setUserActive(userId, isActive);
+
+        return reply.send({
+          message: `User ${isActive ? 'enabled' : 'disabled'}`,
+          user,
+        });
+      } catch (err) {
+        if (err.message === 'No token provided') {
+          return reply.code(401).send({ error: 'No token provided' });
+        }
+        if (err.message === 'Admin access required') {
+          return reply.code(403).send({ error: 'Admin access required' });
+        }
+        if (err.message.includes('not found')) {
+          return reply.code(404).send({ error: err.message });
+        }
+
+        return reply.code(401).send({ error: 'Invalid token or server error' });
+      }
+    });
+
+    // Delete user (admin only)
+    fastify.delete('/users/:id', async (request, reply) => {
+      try {
+        const token = request.headers.authorization?.replace('Bearer ', '');
+        verifyAdmin(token);
+
+        const userId = parseInt(request.params.id, 10);
+
+        if (isNaN(userId) || userId <= 0) {
+          return reply.code(400).send({ error: 'Invalid user ID' });
+        }
+
+        const result = await deleteUser(userId);
+
+        return reply.send(result);
+      } catch (err) {
+        if (err.message === 'No token provided') {
+          return reply.code(401).send({ error: 'No token provided' });
+        }
+        if (err.message === 'Admin access required') {
+          return reply.code(403).send({ error: 'Admin access required' });
+        }
+        if (err.message.includes('not found')) {
+          return reply.code(404).send({ error: err.message });
+        }
+
+        return reply.code(401).send({ error: 'Invalid token or server error' });
+      }
+    });
+
+    // Get activity logs (admin only)
+    fastify.get('/logs', async (request, reply) => {
+      try {
+        const token = request.headers.authorization?.replace('Bearer ', '');
+        verifyAdmin(token);
+
+        const { userId, startDate } = request.query;
+        const logs = await getActivityLogs({ userId, startDate });
+
+        return reply.send({ logs });
+      } catch (err) {
+        if (err.message === 'No token provided') {
+          return reply.code(401).send({ error: 'No token provided' });
+        }
+        if (err.message === 'Admin access required') {
+          return reply.code(403).send({ error: 'Admin access required' });
+        }
+
+        return reply.code(401).send({ error: 'Invalid token' });
       }
     });
   }
   ```
 
-- **Code Example** (Update `server.mjs`):
+- **Testing** (`tests/routes/users.test.mjs`):
 
   ```javascript
   /**
-   * Entry point for AuthMini server.
+   * Tests for User Routes.
+   * @module tests/routes/users
+   */
+  import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+  import Fastify from 'fastify';
+  import jwt from 'jsonwebtoken';
+  import { registerUserRoutes } from '../../backend/routes/users.mjs';
+  import * as userService from '../../backend/services/userService.mjs';
+  import * as activityService from '../../backend/services/activityService.mjs';
+
+  // Mock the services and JWT
+  vi.mock('jsonwebtoken');
+  vi.mock('../../backend/services/userService.mjs');
+  vi.mock('../../backend/services/activityService.mjs');
+
+  describe('User Routes', () => {
+    let fastify;
+    const adminToken = 'admin-token';
+    const userToken = 'user-token';
+
+    beforeAll(async () => {
+      // Setup fastify instance
+      fastify = Fastify({ logger: false });
+      await fastify.register(registerUserRoutes, { prefix: '/api' });
+      await fastify.ready();
+
+      // Setup mock JWT implementation
+      jwt.verify = vi.fn().mockImplementation((token) => {
+        if (token === adminToken) {
+          return { id: 1, email: 'admin@example.com', role: 'admin' };
+        }
+        if (token === userToken) {
+          return { id: 2, email: 'user@example.com', role: 'user' };
+        }
+        throw new Error('Invalid token');
+      });
+
+      // Setup mock service implementations
+      userService.getUsers = vi.fn().mockResolvedValue([
+        { id: 1, email: 'admin@example.com', role: 'admin', is_active: true },
+        { id: 2, email: 'user@example.com', role: 'user', is_active: true },
+      ]);
+
+      userService.getUserById = vi.fn().mockImplementation(async (id) => {
+        if (id === 1) {
+          return {
+            id: 1,
+            email: 'admin@example.com',
+            role: 'admin',
+            is_active: true,
+          };
+        }
+        if (id === 2) {
+          return {
+            id: 2,
+            email: 'user@example.com',
+            role: 'user',
+            is_active: true,
+          };
+        }
+        throw new Error(`User with ID ${id} not found`);
+      });
+
+      userService.setUserActive = vi
+        .fn()
+        .mockImplementation(async (id, isActive) => {
+          if (id === 1 || id === 2) {
+            return { id, is_active: isActive };
+          }
+          throw new Error(`User with ID ${id} not found`);
+        });
+
+      userService.deleteUser = vi.fn().mockImplementation(async (id) => {
+        if (id === 2) {
+          return { message: `User with ID ${id} deleted successfully` };
+        }
+        throw new Error(`User with ID ${id} not found`);
+      });
+
+      activityService.getActivityLogs = vi
+        .fn()
+        .mockResolvedValue([
+          { id: 1, userId: 1, action: 'User logged in', createdAt: new Date() },
+        ]);
+    });
+
+    afterAll(async () => {
+      await fastify.close();
+      vi.restoreAllMocks();
+    });
+
+    it('GET /api/users should return users for admin', async () => {
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/api/users',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.users.length).toBe(2);
+      expect(userService.getUsers).toHaveBeenCalled();
+    });
+
+    it('GET /api/users should reject non-admin users', async () => {
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/api/users',
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(JSON.parse(response.body)).toEqual({
+        error: 'Admin access required',
+      });
+    });
+
+    it('GET /api/users/:id should return user details for admin', async () => {
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/api/users/2',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.user.id).toBe(2);
+      expect(body.user.email).toBe('user@example.com');
+      expect(userService.getUserById).toHaveBeenCalledWith(2);
+    });
+
+    it('GET /api/users/:id should return 404 for non-existent user', async () => {
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/api/users/999',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(404);
+      expect(JSON.parse(response.body).error).toContain('not found');
+    });
+
+    it('PATCH /api/users/:id/active should update user status for admin', async () => {
+      const response = await fastify.inject({
+        method: 'PATCH',
+        url: '/api/users/2/active',
+        headers: { Authorization: `Bearer ${adminToken}` },
+        payload: { isActive: false },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.message).toBe('User disabled');
+      expect(body.user.is_active).toBe(false);
+      expect(userService.setUserActive).toHaveBeenCalledWith(2, false);
+    });
+
+    it('DELETE /api/users/:id should delete a user for admin', async () => {
+      const response = await fastify.inject({
+        method: 'DELETE',
+        url: '/api/users/2',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.message).toContain('deleted successfully');
+      expect(userService.deleteUser).toHaveBeenCalledWith(2);
+    });
+
+    it('GET /api/logs should return activity logs for admin', async () => {
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/api/logs',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(Array.isArray(body.logs)).toBe(true);
+      expect(activityService.getActivityLogs).toHaveBeenCalled();
+    });
+  });
+  ```
+
+- **Running Tests**:
+
+  - **Command**: `npm run test  tests/routes/users.test.mjs`
+  - **Expected Output**:
+
+    ```
+    ✓ tests/routes/users.test.mjs (7 tests) 32ms
+
+    Test Files  1 passed (1)
+    Tests       7 passed (7)
+    Start at    10:45:20
+    Duration    1.11s
+    ```
+
+  - **Possible Errors**:
+    - `ReferenceError: jwt is not defined`: Forgot to import or mock JWT.
+    - `Error: listen EADDRINUSE`: Port conflict, check test setup.
+
+### Step 13: Update Server Configuration
+
+- **Why**: Server needs to use updated database connection and serve APIs/frontend.
+- **How**: Update `server.mjs`.
+- **Code Example** (`server.mjs`):
+
+  ```javascript
+  /**
+   * Server entry point for AuthMini.
    * @module server
    */
   import Fastify from 'fastify';
   import fastifyStatic from '@fastify/static';
+  import path from 'path';
+  import { fileURLToPath } from 'url';
   import { config } from 'dotenv';
   import { registerRoutes } from './backend/routes/auth.mjs';
   import { registerUserRoutes } from './backend/routes/users.mjs';
-  import { join, dirname } from 'path';
-  import { fileURLToPath } from 'url';
+  import { initDb } from './backend/data/db.mjs';
 
   // Load environment variables
   config();
-  // Initialize Fastify with logging
-  const fastify = Fastify({
-    logger: { level: process.env.LOG_LEVEL || 'info' },
-  });
-  // Get directory name for static file serving
-  const __dirname = dirname(fileURLToPath(import.meta.url));
+
+  // Get __dirname equivalent in ESM
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
 
   /**
-   * Starts the Fastify server.
+   * Starts the server.
    * @async
    */
-  async function startServer() {
-    // Register static file serving for frontend
-    await fastify.register(fastifyStatic, {
-      root: join(__dirname, 'frontend'),
-      prefix: '/',
-      setHeaders: (res) => {
-        // Set cache control for static files
-        res.setHeader('Cache-Control', 'public, max-age=3600');
-      },
+  export async function startServer() {
+    const fastify = Fastify({
+      logger: { level: process.env.LOG_LEVEL || 'info' },
     });
 
-    // Register authentication routes
-    await fastify.register(registerRoutes, { prefix: '/api' });
-    // Register admin user routes
-    await fastify.register(registerUserRoutes, { prefix: '/api' });
+    // Initialize Prisma client
+    initDb();
+
+    // Serve static files from frontend directory
+    fastify.register(fastifyStatic, {
+      root: path.join(__dirname, 'frontend'),
+      prefix: '/',
+    });
+
+    // Register API routes
+    fastify.register(registerRoutes, { prefix: '/api' });
+    fastify.register(registerUserRoutes, { prefix: '/api' });
+
+    // Catch-all route for SPA
+    fastify.setNotFoundHandler((request, reply) => {
+      reply.sendFile('index.html');
+    });
+
+    // Get port from environment or use default
+    const port = process.env.PORT || 3000;
 
     try {
-      // Start server on specified port for Render (e.g., 10000)
-      const port = process.env.PORT || 3000;
-      // Bind to 0.0.0.0 in production (Render), otherwise use default (localhost)
-      const host =
-        process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
-      await fastify.listen({ port, host });
-      fastify.log.info(`Server running on port ${port}`);
+      const address = await fastify.listen({ port, host: '0.0.0.0' });
+      console.log(`Server listening on ${address}`);
     } catch (err) {
-      // Log and exit on server failure
-      fastify.log.error(err);
+      console.error('Error starting server:', err);
       process.exit(1);
     }
   }
 
-  // Start the server
   startServer();
   ```
 
-  - **Explanation**:
-    - **Render Compatibility**:
-      - `port = process.env.PORT || 3000`: Uses Render’s assigned `PORT` (e.g., 10000) in production, falls back to 3000 locally.
-      - `host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1'`: Binds to `0.0.0.0` in production for Render’s external access, uses `localhost` in development.
-    - **Cloud Provider Variations**:
-      - Render requires `0.0.0.0` and a dynamic `PORT`. Other providers (e.g., Heroku) may use different environment variables (e.g., `PORT`), and AWS may require specific security groups. Always check the provider’s documentation for host/port configuration.
-    - **Nuance**: The `.env` file supports this with `NODE_ENV` and `PORT`.
+### Step 14: Update Frontend for CRUD Operations
 
-- **Testing** (Postman):
-  1. Login as admin (`admin@example.com`/`admin123`), get token.
-  2. POST `/api/profile`:
-     - Header: `Authorization: Bearer [token]`.
-     - Body: `{"display_name":"User","bio":"Bio","avatar_url":""}`.
-     - **Expected Response**: `200 OK`, `{ message: "Profile updated" }`.
-  3. POST `/api/password`:
-     - Header: `Authorization: Bearer [token]`.
-     - Body: `{"newPassword":"newpass123"}`.
-     - **Expected Response**: `200 OK`, `{ message: "Password updated" }`.
-  4. GET `/api/users?search=user`:
-     - Header: `Authorization: Bearer [admin token]`.
-     - **Expected Response**: `200 OK`, `{ users: [...] }` with filtered users.
-  5. POST `/api/users/2/toggle`:
-     - Header: `Authorization: Bearer [admin token]`.
-     - Body: `{"isActive":false}`.
-     - **Expected Response**: `200 OK`, `{ message: "User disabled" }`.
-  - **Common Issues**:
-    - **401**: Verify token.
-    - **403**: Use admin token for user routes.
-    - **Database errors**: Check schema, ensure `authmini.db` is in Git.
-
-### Step 10: Enhance Frontend UI and Logic
-
-- **Why**: Adds profile/settings UI, validation, and animations.
-- **How**: Update `index.html`, `styles.css`, `app.js`, `auth.js`, create `profile.js`.
+- **Why**: Frontend needs to support CRUD operations.
+- **How**: Update `index.html` to include functionality for CRUD operations.
 - **Code Example** (`frontend/index.html`):
 
   ```html
@@ -1192,7 +2285,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>AuthMini</title>
+      <title>AuthMini V3</title>
       <script src="https://cdn.tailwindcss.com"></script>
       <link rel="stylesheet" href="css/styles.css" />
     </head>
@@ -1205,7 +2298,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
       <div x-show="!user" class="form-container">
         <div x-data="authComponent()">
           <h2 class="text-2xl font-bold mb-4 text-white">
-            AuthMini Login / Register
+            AuthMini V3 Login / Register
           </h2>
           <input
             x-model="email"
@@ -1256,7 +2349,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
         <div x-show="showProfile" class="mt-4" x-data="profileComponent()">
           <h3 class="text-lg font-semibold mb-2 text-white">Edit Profile</h3>
           <input
-            x-model="profile.display_name"
+            x-model="profile.displayName"
             placeholder="Display Name"
             class="w-full text-gray-700 p-2 mb-2 rounded"
           />
@@ -1266,7 +2359,7 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
             class="w-full text-gray-700 p-2 mb-2 rounded"
           ></textarea>
           <input
-            x-model="profile.avatar_url"
+            x-model="profile.avatarUrl"
             placeholder="Avatar URL"
             class="w-full text-gray-700 p-2 mb-2 rounded"
           />
@@ -1310,24 +2403,166 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
           placeholder="Search users..."
           class="w-full text-gray-700 p-2 mb-4 rounded"
         />
+        <div class="text-white mb-4">
+          <label>
+            <input
+              type="radio"
+              name="status"
+              value=""
+              x-model="activeFilter"
+              @change="fetchUsers()"
+            />
+            All Users
+          </label>
+          <label class="ml-4">
+            <input
+              type="radio"
+              name="status"
+              value="true"
+              x-model="activeFilter"
+              @change="fetchUsers()"
+            />
+            Active Users
+          </label>
+          <label class="ml-4">
+            <input
+              type="radio"
+              name="status"
+              value="false"
+              x-model="activeFilter"
+              @change="fetchUsers()"
+            />
+            Disabled Users
+          </label>
+        </div>
         <h3 class="text-lg font-semibold mb-2 text-white">Users</h3>
-        <ul class="mb-4">
+        <ul class="mb-4 max-h-60 overflow-y-auto">
           <template x-for="u in users" :key="u.id">
-            <li class="text-white flex justify-between items-center">
+            <li
+              class="text-white flex justify-between items-center py-1 border-b border-gray-600"
+            >
               <span
-                x-text="`${u.email} (${u.role}) - Active: ${u.is_active ? 'Yes' : 'No'}`"
+                x-text="`${u.email} (${u.role}) - ${u.is_active ? 'Active' : 'Disabled'}`"
               ></span>
-              <button
-                @click="toggleUser(u.id, !u.is_active)"
-                class="btn-primary text-sm"
-                :class="{ 'animate-pulse': loading }"
-              >
-                <span x-text="u.is_active ? 'Disable' : 'Enable'"></span>
-              </button>
+              <div>
+                <button
+                  @click="viewUser(u.id)"
+                  class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded"
+                >
+                  View
+                </button>
+                <button
+                  @click="toggleUserActive(u.id, !u.is_active)"
+                  class="ml-1 text-xs px-2 py-1 rounded"
+                  :class="u.is_active ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'"
+                >
+                  <span x-text="u.is_active ? 'Disable' : 'Enable'"></span>
+                </button>
+                <button
+                  @click="deleteUser(u.id)"
+                  class="ml-1 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded"
+                >
+                  Delete
+                </button>
+              </div>
             </li>
           </template>
         </ul>
-        <button @click="logout()" class="btn-primary">Logout</button>
+
+        <!-- Activity Logs -->
+        <h3 class="text-lg font-semibold mt-4 mb-2 text-white">
+          Recent Activity
+        </h3>
+        <ul class="mb-4 max-h-40 overflow-y-auto">
+          <template x-for="log in logs" :key="log.id">
+            <li class="text-white text-sm py-1 border-b border-gray-600">
+              <span
+                x-text="`${new Date(log.createdAt).toLocaleString()} - ${log.user?.email || 'Unknown'}: ${log.action}`"
+              ></span>
+            </li>
+          </template>
+        </ul>
+
+        <button
+          @click="fetchUsers(); fetchLogs();"
+          class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded"
+        >
+          Refresh Data
+        </button>
+        <button @click="logout()" class="btn-primary ml-2">Logout</button>
+
+        <!-- Error message -->
+        <p x-show="error" x-text="error" class="text-red-500 mt-2"></p>
+
+        <!-- User Details Modal -->
+        <div
+          x-show="selectedUser"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+        >
+          <div class="bg-white p-6 rounded-lg w-96 max-w-full">
+            <h3
+              class="text-xl font-bold mb-4"
+              x-text="`User: ${selectedUser?.email}`"
+            ></h3>
+            <div class="mb-4">
+              <p>
+                <strong>ID:</strong> <span x-text="selectedUser?.id"></span>
+              </p>
+              <p>
+                <strong>Role:</strong> <span x-text="selectedUser?.role"></span>
+              </p>
+              <p>
+                <strong>Status:</strong>
+                <span
+                  x-text="selectedUser?.is_active ? 'Active' : 'Disabled'"
+                ></span>
+              </p>
+              <p>
+                <strong>Created:</strong>
+                <span
+                  x-text="new Date(selectedUser?.createdAt).toLocaleString()"
+                ></span>
+              </p>
+            </div>
+
+            <div class="mb-4" x-show="selectedUser?.profile">
+              <h4 class="font-bold">Profile</h4>
+              <p>
+                <strong>Name:</strong>
+                <span
+                  x-text="selectedUser?.profile?.displayName || 'Not set'"
+                ></span>
+              </p>
+              <p>
+                <strong>Bio:</strong>
+                <span x-text="selectedUser?.profile?.bio || 'Not set'"></span>
+              </p>
+            </div>
+
+            <div class="mb-4" x-show="selectedUser?.settings">
+              <h4 class="font-bold">Settings</h4>
+              <p>
+                <strong>Theme:</strong>
+                <span x-text="selectedUser?.settings?.theme"></span>
+              </p>
+              <p>
+                <strong>Notifications:</strong>
+                <span
+                  x-text="selectedUser?.settings?.notifications ? 'Enabled' : 'Disabled'"
+                ></span>
+              </p>
+            </div>
+
+            <div class="flex justify-end">
+              <button
+                @click="closeUserDetails()"
+                class="bg-gray-500 hover:bg-gray-600 text-white py-1 px-3 rounded"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <script src="js/app.js" defer></script>
@@ -1345,563 +2580,691 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   </html>
   ```
 
-- **Code Example** (`frontend/css/styles.css`):
-
-  ```css
-  /* Styles for the form container */
-  .form-container {
-    background-color: #374151; /* bg-gray-700 */
-    padding: 2rem; /* p-8 */
-    border-radius: 0.5rem; /* rounded-lg */
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3); /* shadow-lg */
-    max-width: 28rem; /* max-w-md */
-    width: 100%; /* w-full */
-    color: #ffffff; /* text-white */
-    transition: transform 0.3s ease; /* Animation for form */
-  }
-
-  /* Hover effect for form container */
-  .form-container:hover {
-    transform: scale(1.02); /* Slight zoom on hover */
-  }
-
-  /* Styles for primary button */
-  .btn-primary {
-    background-color: #4b5563; /* bg-gray-600 */
-    color: #ffffff; /* text-white */
-    padding: 0.5rem 1rem; /* px-4 py-2 */
-    border-radius: 0.375rem; /* rounded-md */
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    cursor: pointer;
-  }
-
-  /* Hover effect for button */
-  .btn-primary:hover {
-    background-color: #6b7280; /* hover:bg-gray-500 */
-    transform: translateY(-2px); /* Lift effect */
-  }
-
-  /* Disabled state for button */
-  .btn-primary:disabled {
-    background-color: #6b7280; /* disabled:bg-gray-500 */
-    cursor: not-allowed;
-  }
-
-  /* Pulse animation for loading state */
-  .animate-pulse {
-    animation: pulse 1.5s infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
-  }
-  ```
-
 - **Code Example** (`frontend/js/app.js`):
 
-  ```javascript
-  /**
-   * SPA state and navigation for AuthMini.
-   * @module js/app
-   */
-  function app() {
-    return {
-      user: null,
-      users: [],
-      search: '',
-      showProfile: false,
-      loading: false,
-      /**
-       * Initializes SPA state based on stored token.
-       * @async
-       */
-      async init() {
-        // Check for stored JWT token
+```javascript
+/**
+ * Main application component.
+ * @returns {Object} Alpine.js component.
+ */
+function app() {
+  return {
+    user: null,
+    showProfile: false,
+    users: [],
+    logs: [],
+    search: '',
+    activeFilter: '',
+    selectedUser: null,
+    error: null,
+    loading: false,
+
+    /**
+     * Initializes application.
+     * @async
+     */
+    async init() {
+      // Check for token
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const res = await axios.get('/api/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          this.user = res.data.user;
+
+          // If admin, load users and logs
+          if (this.user.role === 'admin') {
+            await this.fetchUsers();
+            await this.fetchLogs();
+          }
+        } catch (err) {
+          console.error('Failed to verify token:', err);
+          localStorage.removeItem('token');
+        }
+      }
+    },
+
+    /**
+     * Fetches users for admin dashboard.
+     * @async
+     */
+    async fetchUsers() {
+      this.loading = true;
+      this.error = null;
+      try {
         const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            // Decode token payload
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            // Set user state
-            this.user = { email: payload.email, role: payload.role };
-            // Fetch users for admin dashboard
-            if (this.user.role === 'admin') {
-              await this.fetchUsers();
-            }
-          } catch (err) {
-            // Clear invalid token
-            localStorage.removeItem('token');
-          }
+        let url = '/api/users';
+
+        // Add filters if present
+        if (this.search || this.activeFilter) {
+          const params = new URLSearchParams();
+          if (this.search) params.append('search', this.search);
+          if (this.activeFilter) params.append('active', this.activeFilter);
+          url += `?${params.toString()}`;
         }
-      },
-      /**
-       * Fetches users for admin dashboard.
-       * @async
-       */
-      async fetchUsers() {
-        // Set loading state
-        this.loading = true;
-        try {
-          // Get stored token
-          const token = localStorage.getItem('token');
-          // Fetch users with search query
-          const res = await axios.get(`/api/users?search=${this.search}`, {
+
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        this.users = res.data.users;
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+        this.error = err.response?.data?.error || 'Failed to fetch users';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    /**
+     * Fetches activity logs for admin dashboard.
+     * @async
+     */
+    async fetchLogs() {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('/api/logs', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        this.logs = res.data.logs;
+      } catch (err) {
+        console.error('Failed to fetch logs:', err);
+      }
+    },
+
+    /**
+     * Views user details.
+     * @param {number} userId - User ID.
+     * @async
+     */
+    async viewUser(userId) {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`/api/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        this.selectedUser = res.data.user;
+      } catch (err) {
+        console.error('Failed to fetch user details:', err);
+        this.error =
+          err.response?.data?.error || 'Failed to fetch user details';
+      }
+    },
+
+    /**
+     * Closes user details modal.
+     */
+    closeUserDetails() {
+      this.selectedUser = null;
+    },
+
+    /**
+     * Toggles user active status and refreshes users.
+     * @param {number} userId - User ID.
+     * @param {boolean} isActive - New active status.
+     * @async
+     */
+    async toggleUserActive(userId, isActive) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.patch(
+          `/api/users/${userId}/active`,
+          { isActive },
+          {
             headers: { Authorization: `Bearer ${token}` },
-          });
-          // Update users list
-          this.users = res.data.users;
-        } catch (err) {
-          console.error('Failed to fetch users:', err);
-        } finally {
-          // Clear loading state
-          this.loading = false;
-        }
-      },
-      /**
-       * Toggles user active status.
-       * @param {number} userId - User's ID.
-       * @param {boolean} isActive - Active status.
-       * @async
-       */
-      async toggleUser(userId, isActive) {
-        // Set loading state
-        this.loading = true;
-        try {
-          // Get stored token
-          const token = localStorage.getItem('token');
-          // Send toggle request
-          await axios.post(
-            `/api/users/${userId}/toggle`,
-            { isActive },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          // Refresh user list
-          await this.fetchUsers();
-        } catch (err) {
-          console.error('Failed to toggle user:', err);
-        } finally {
-          // Clear loading state
-          this.loading = false;
-        }
-      },
-      /**
-       * Logs out user and resets UI.
-       */
-      logout() {
-        // Clear token and reload page
+          }
+        );
+
+        // Refresh users list and logs
+        await this.fetchUsers();
+        await this.fetchLogs();
+      } catch (err) {
+        console.error('Failed to toggle user active:', err);
+        this.error = err.response?.data?.error || 'Failed to update user';
+      }
+    },
+
+    /**
+     * Deletes a user after confirmation.
+     * @param {number} userId - User ID.
+     * @async
+     */
+    async deleteUser(userId) {
+      if (
+        !confirm(
+          'Are you sure you want to delete this user? This action cannot be undone.'
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`/api/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Refresh users list and logs
+        await this.fetchUsers();
+        await this.fetchLogs();
+      } catch (err) {
+        console.error('Failed to delete user:', err);
+        this.error = err.response?.data?.error || 'Failed to delete user';
+      }
+    },
+
+    /**
+     * Logs out the user.
+     * @async
+     */
+    async logout() {
+      try {
+        await axios.post('/api/logout');
+      } catch (err) {
+        console.error('Logout error:', err);
+      } finally {
         localStorage.removeItem('token');
-        window.location.reload();
-      },
-    };
-  }
+        this.user = null;
+        this.users = [];
+        this.logs = [];
+        window.location.href = '/';
+      }
+    },
+  };
+}
 
-  // Register Alpine.js component
-  window.app = app;
-  ```
+// Initialize Alpine.js
+window.Alpine = Alpine;
+Alpine.data('app', app);
+Alpine.start();
+```
 
-- **Code Example** (`frontend/js/auth.js`):
+### Step 15: Implement API Integration Tests
 
-  ```javascript
-  /**
-   * Authentication component with form validation.
-   * @module js/auth
-   */
-  function authComponent() {
-    return {
-      email: '',
-      password: '',
-      error: '',
-      errors: { email: '', password: '' },
-      /**
-       * Validates form inputs.
-       */
-      validate() {
-        // Check email format
-        this.errors.email = this.email.includes('@') ? '' : 'Invalid email';
-        // Check password length
-        this.errors.password =
-          this.password.length >= 6 ? '' : 'Password must be 6+ characters';
-      },
-      /**
-       * Submits register or login request.
-       * @param {string} action - 'register' or 'login'.
-       * @async
-       */
-      async submit(action) {
-        // Run validation
-        this.validate();
-        // Block submission if errors exist
-        if (this.errors.email || this.errors.password) return;
-        try {
-          // Send register or login request
-          const res = await axios.post(`/api/${action}`, {
-            email: this.email,
-            password: this.password,
-          });
-          if (action === 'login') {
-            // Store token and reload page
-            localStorage.setItem('token', res.data.token);
-            window.location.reload();
-          } else {
-            // Show registration success message
-            this.error = 'Registration successful. Please login.';
-          }
-        } catch (err) {
-          // Display error message
-          this.error = err.response?.data?.error || 'An error occurred';
-        }
-      },
-    };
-  }
-
-  // Register Alpine.js component
-  window.authComponent = authComponent;
-  ```
-
-- **Code Example** (`frontend/js/profile.js`):
-
-  ```javascript
-  /**
-   * Profile and settings component.
-   * @module js/profile
-   */
-  function profileComponent() {
-    return {
-      profile: { display_name: '', bio: '', avatar_url: '' },
-      settings: { theme: 'light', notifications: true },
-      password: '',
-      error: '',
-      loading: false,
-      /**
-       * Initializes profile and settings data.
-       * @async
-       */
-      async init() {
-        try {
-          // Get stored token
-          const token = localStorage.getItem('token');
-          // Fetch profile and settings (mocked as API not implemented)
-          // const res = await axios.get('/api/profile', { headers: { Authorization: `Bearer ${token}` } });
-          // this.profile = res.data.profile || this.profile;
-          // this.settings = res.data.settings || this.settings;
-        } catch (err) {
-          // Display error message
-          this.error = 'Failed to load profile';
-        }
-      },
-      /**
-       * Saves profile, settings, and password.
-       * @async
-       */
-      async saveProfile() {
-        // Set loading state
-        this.loading = true;
-        try {
-          // Get stored token
-          const token = localStorage.getItem('token');
-          // Save profile data
-          await axios.post('/api/profile', this.profile, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          // Save settings data
-          await axios.post('/api/settings', this.settings, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          // Save new password if provided
-          if (this.password) {
-            await axios.post(
-              '/api/password',
-              { newPassword: this.password },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-          }
-          // Show success message
-          this.error = 'Profile saved successfully';
-        } catch (err) {
-          // Display error message
-          this.error = err.response?.data?.error || 'Failed to save profile';
-        } finally {
-          // Clear loading state
-          this.loading = false;
-        }
-      },
-    };
-  }
-
-  // Register Alpine.js component
-  window.profileComponent = profileComponent;
-  ```
-
-- **Testing** (Browser):
-  1. Run `npm start`.
-  2. Open `http://localhost:3000`.
-  3. Register/login as user, click “Edit Profile”, save profile/settings.
-  4. Login as admin, search users, toggle active status.
-  5. **Expected Outcome**: Profile updates, admin search works, animations visible.
-  - **Common Issues**:
-    - **Validation errors**: Check `auth.js` validation logic.
-    - **API errors**: Verify backend routes and token.
-    - **Port issues**: Ensure `PORT=3000` in `.env` or matches `server.mjs`.
-
-### Step 11: Add Basic Testing
-
-- **Why Testing?**  
-  Testing ensures code reliability and validates new features in V2. Here’s the ideology and approach:
-
-  - **Ideology**:
-    - **Purpose**: Verifies that code works as expected, catching bugs early and ensuring features (e.g., profile management, admin controls) function correctly.
-    - **Why Now?**: V2’s increased complexity (new routes, service layer) raises error risks, making testing essential.
-    - **Professional Practice**: Testing is standard in real-world development, building good habits.
-    - **Confidence**: Enables refactoring without breaking functionality.
-    - **Preparation for Future**: Lays groundwork for advanced testing in AuthMini V3 (e.g., unit tests, ORM-based tests).
-  - **Why Jest and Supertest?**:
-    - **Jest**: Beginner-friendly testing framework for unit and integration tests.
-    - **Supertest**: Simplifies API testing by simulating HTTP requests to Fastify routes.
-    - **Simplicity**: Aligns with V2’s goal of introducing testing without complexity.
-  - **How to Use**:
-    - **Setup**: Configure Jest/Supertest in `package.json` and `jest.config.mjs`.
-    - **Write Tests**: Create integration tests for APIs (`/api/register`, `/api/login`, admin account).
-    - **Run Tests**: Use `npm test` or `npm test:watch` for development.
-    - **CI/CD Integration**: Tests run automatically in GitHub Actions.
-
-- **How**: Create `tests/api.test.mjs` for integration tests.
+- **Why**: Ensure all components work together correctly.
+- **How**: Create comprehensive tests in `api.test.mjs`.
 - **Code Example** (`tests/api.test.mjs`):
 
-  ```javascript
-  /**
-   * Integration tests for AuthMini APIs.
-   * @module tests/api
-   */
-  import supertest from 'supertest';
-  import Fastify from 'fastify';
-  import { registerRoutes } from '../backend/routes/auth.mjs';
-  import { registerUserRoutes } from '../backend/routes/users.mjs';
-  import { initDb } from '../backend/data/db.mjs';
+```javascript
+/**
+ * Integration tests for AuthMini APIs.
+ * @module tests/api
+ */
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import supertest from 'supertest';
+import Fastify from 'fastify';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { config } from 'dotenv';
+import { registerRoutes } from '../backend/routes/auth.mjs';
+import { registerUserRoutes } from '../backend/routes/users.mjs';
+import { initDb, getDb } from '../backend/data/db.mjs';
 
-  // Initialize Fastify test server
-  const fastify = Fastify({ logger: false });
-  let request;
+// Load environment variables
+config();
 
-  // Setup before all tests
-  beforeAll(async () => {
-    // Initialize database
-    initDb();
-    // Register routes
+// Test variables
+let adminToken;
+let userToken;
+let testUserId;
+const adminEmail = 'admin@example.com';
+const testEmail = 'integration-test@example.com';
+const testPassword = 'test123';
+
+// Setup Fastify for testing
+const fastify = Fastify({
+  logger: false, // Disable logger for cleaner output
+});
+
+beforeAll(async () => {
+  console.log('Starting beforeAll hook...');
+
+  // Initialize database
+  console.log('Initializing database...');
+  const db = initDb();
+  console.log('Database initialized');
+
+  // Create admin user directly with Prisma instead of using seed
+  console.log('Creating admin user...');
+  try {
+    // Check if admin user exists
+    const existingAdmin = await db.user.findUnique({
+      where: { email: adminEmail },
+    });
+
+    if (!existingAdmin) {
+      // Create admin user if doesn't exist
+      await db.user.create({
+        data: {
+          email: adminEmail,
+          passwordHash: await bcrypt.hash('admin123', 10),
+          role: 'admin',
+          is_active: true,
+        },
+      });
+      console.log('Admin user created');
+    } else {
+      console.log('Admin user already exists');
+    }
+
+    // Generate token directly instead of using login API
+    adminToken = jwt.sign(
+      { id: 1, email: adminEmail, role: 'admin' },
+      process.env.JWT_SECRET || 'fallback_secret_for_testing',
+      { expiresIn: '1h' }
+    );
+    console.log('Admin token generated manually');
+
+    // Register routes to the Fastify instance
+    console.log('Registering routes...');
     await fastify.register(registerRoutes, { prefix: '/api' });
     await fastify.register(registerUserRoutes, { prefix: '/api' });
-    // Initialize supertest
-    request = supertest(fastify.server);
-  });
+    await fastify.ready();
+    console.log('Routes registered and server ready');
+  } catch (err) {
+    console.error('Error in beforeAll:', err);
+    throw err; // Make the test fail with the actual error
+  }
 
-  // Cleanup after all tests
-  afterAll(async () => {
-    // Close Fastify server
+  console.log('beforeAll hook completed');
+}, 120000); // 2 minutes timeout
+
+afterAll(async () => {
+  console.log('Starting afterAll hook...');
+
+  // Clean up test user if created
+  if (testUserId) {
+    console.log(`Cleaning up test user ID ${testUserId}...`);
+    try {
+      const db = getDb();
+      await db.profile.deleteMany({ where: { userId: testUserId } });
+      await db.settings.deleteMany({ where: { userId: testUserId } });
+      await db.activityLog.deleteMany({ where: { userId: testUserId } });
+      await db.user.delete({ where: { id: testUserId } }).catch(() => {});
+      console.log('Test user cleaned up');
+    } catch (err) {
+      console.error('Error cleaning up test user:', err);
+    }
+  }
+
+  // Close Fastify and disconnect from DB
+  try {
     await fastify.close();
-  });
+    console.log('Fastify server closed');
 
-  // Test admin account existence
-  describe('Admin Account', () => {
-    test('should confirm admin account exists', async () => {
-      // Send login request for admin
-      const response = await request
-        .post('/api/login')
-        .send({ email: 'admin@example.com', password: 'admin123' })
-        .expect(200);
-      // Verify response contains token and admin role
-      expect(response.body).toHaveProperty('token');
-      expect(response.body.user).toHaveProperty('role', 'admin');
-    });
-  });
+    const db = getDb();
+    await db.$disconnect();
+    console.log('Database disconnected');
+  } catch (err) {
+    console.error('Error in afterAll:', err);
+  }
 
-  // Test user registration
-  describe('User Registration', () => {
-    test('should register a new user', async () => {
-      // Send registration request
-      const response = await request
-        .post('/api/register')
-        .send({ email: 'test@example.com', password: 'test123' })
-        .expect(201);
-      // Verify success message
-      expect(response.body).toEqual({ message: 'User registered' });
-    });
+  console.log('afterAll hook completed');
+}, 120000); // 2 minutes timeout
 
-    test('should fail to register duplicate email', async () => {
-      // Send duplicate registration request
-      const response = await request
-        .post('/api/register')
-        .send({ email: 'test@example.com', password: 'test123' })
-        .expect(400);
-      // Verify error message
-      expect(response.body.error).toMatch(/Email already exists/);
-    });
-  });
+describe('Authentication Flow', () => {
+  it('should register a new user', async () => {
+    console.log('Starting register test...');
+    const response = await supertest(fastify.server)
+      .post('/api/register')
+      .send({ email: testEmail, password: testPassword });
 
-  // Test user login
-  describe('User Login', () => {
-    test('should login with valid credentials', async () => {
-      // Send login request
-      const response = await request
-        .post('/api/login')
-        .send({ email: 'test@example.com', password: 'test123' })
-        .expect(200);
-      // Verify response contains token and user data
-      expect(response.body).toHaveProperty('token');
-      expect(response.body.user).toHaveProperty('email', 'test@example.com');
-    });
+    console.log('Register response status:', response.status);
+    console.log('Register response body:', response.body);
 
-    test('should fail with invalid credentials', async () => {
-      // Send invalid login request
-      const response = await request
-        .post('/api/login')
-        .send({ email: 'test@example.com', password: 'wrong' })
-        .expect(401);
-      // Verify error message
-      expect(response.body.error).toMatch(/Invalid credentials/);
-    });
-  });
-  ```
+    expect(response.statusCode).toBe(201);
+    expect(response.body).toEqual({ message: 'User registered' });
 
-- **Explanation**:
+    // Get user ID for cleanup
+    console.log('Fetching created user for cleanup...');
+    try {
+      const db = getDb();
+      const user = await db.user.findUnique({ where: { email: testEmail } });
+      testUserId = user?.id;
+      console.log('Test user ID:', testUserId);
+    } catch (err) {
+      console.error('Error fetching user ID:', err);
+    }
+  }, 30000);
 
-  - **Purpose**: Tests critical APIs to ensure functionality (admin login, user registration, login).
-  - **Setup**:
-    - Initializes Fastify test server with routes.
-    - Uses `initDb()` for SQLite (`authmini.db`, included in Git for seeded admin account).
-    - `beforeAll`/`afterAll` manage server lifecycle.
-  - **Tests**:
-    - **Admin Account**: Verifies `admin@example.com` exists with `role: admin`.
-    - **Registration**: Tests successful registration and duplicate email failure.
-    - **Login**: Tests valid/invalid credentials.
-  - **Nuance**:
-    - Uses `--experimental-vm-modules` in `package.json` for ESM support.
-    - `authmini.db` in Git ensures seeded admin account, but `git pull` overwrites the database (non-ideal, for learning). AuthMini V3 will address this with a persistent database.
+  it('should not register a duplicate email', async () => {
+    console.log('Starting duplicate email test...');
+    const response = await supertest(fastify.server)
+      .post('/api/register')
+      .send({ email: testEmail, password: testPassword });
 
-- **Testing**:
-  - Run: `npm test`.
-  - **Expected Outcome**: All tests pass.
-  - Run: `npm test:watch` for interactive development.
-  - **Common Issues**:
-    - **Jest errors**: Verify `jest.config.mjs` (`transform: {}`, `testMatch` for `.mjs`).
-    - **Database errors**: Ensure `authmini.db` exists and `initDb()` runs.
-    - **Module errors**: Check `supertest`, `jest` in `package.json`.
-    - **Node version**: Use Node.js 20.15.1 (`nvm use 20.15.1`).
+    console.log('Duplicate email response status:', response.status);
+    console.log('Duplicate email response body:', response.body);
 
-### Step 12: Perform Local Manual Checks Before CI/CD
+    expect(response.statusCode).toBe(400);
+    expect(response.body.error).toContain('Email already exists');
+  }, 30000);
 
-- **Why Manual Checks?**  
-  Local manual checks ensure the app is stable before CI/CD, verifying linting, tests, and functionality to reduce pipeline failures.
+  it('should login a user', async () => {
+    console.log('Starting login test...');
+    const response = await supertest(fastify.server)
+      .post('/api/login')
+      .send({ email: testEmail, password: testPassword });
 
-  - **Purpose**:
-    - **Code Quality**: Ensure ESLint passes for consistent style.
-    - **Tests**: Confirm Jest tests succeed.
-    - **Functionality**: Manually test APIs/UI for issues not caught by tests.
-    - **Efficiency**: Fix issues locally to save CI/CD resources.
-  - **Why Before CI/CD?**: Mimics professional workflows, reinforcing debugging skills.
+    console.log('Login response status:', response.status);
+    console.log('Login response body:', response.body);
 
-- **How**: Run linting, tests, and manual tests.
-- **Steps**:
+    expect(response.statusCode).toBe(200);
+    expect(response.body.token).toBeDefined();
+    expect(response.body.user.email).toBe(testEmail);
 
-  1. **Run ESLint**:
-     - Command: `npm run lint`.
-     - **Purpose**: Enforces style (2-space indent, single quotes, semicolons).
-     - **Expected Outcome**: No errors, as `no-console` is off and `axios`/`Alpine` are globals in `.eslintrc.json`.
-     - **Fixes**:
-       - Add semicolons, use single quotes.
-       - Example (`frontend/js/app.js`):
-         ```javascript
-         // Before
-         console.log('Debug');
-         // After
-         console.log('Debug');
-         ```
-  2. **Run Tests**:
-     - Command: `npm test`.
-     - **Purpose**: Verifies `tests/api.test.mjs`.
-     - **Expected Outcome**: All tests pass.
-     - **Fixes**:
-       - Database: Ensure `authmini.db` is initialized.
-       - Test failures: Debug `auth.mjs`, `users.mjs`.
-  3. **Test APIs with Postman**:
-     - **Endpoints**:
-       - **POST `/api/register`**:
-         - Body: `{"email":"test2@example.com","password":"test123"}`.
-         - Expected: `201`, `{ message: "User registered" }`.
-       - **POST `/api/login`**:
-         - Body: `{"email":"test2@example.com","password":"test123"}`.
-         - Expected: `200`, `{ token, user }`.
-       - **POST `/api/profile`**:
-         - Header: `Authorization: Bearer [token]`.
-         - Body: `{"display_name":"Test","bio":"Bio","avatar_url":""}`.
-         - Expected: `200`, `{ message: "Profile updated" }`.
-       - **POST `/api/password`**:
-         - Header: `Authorization: Bearer [token]`.
-         - Body: `{"newPassword":"newpass123"}`.
-         - Expected: `200`, `{ message: "Password updated" }`.
-       - **GET `/api/users?search=test`** (admin):
-         - Header: `Authorization: Bearer [admin token]`.
-         - Expected: `200`, `{ users: [...] }`.
-       - **POST `/api/users/2/toggle`** (admin):
-         - Header: `Authorization: Bearer [admin token]`.
-         - Body: `{"isActive":false}`.
-         - Expected: `200`, `{ message: "User disabled" }`.
-     - **Issues**:
-       - **401**: Check token.
-       - **403**: Use admin token for `/api/users`.
-       - **Database**: Ensure `authmini.db` is seeded.
-  4. **Test Frontend in Browser**:
-     - Run: `npm start`.
-     - Open: `http://localhost:3000`.
-     - **User Flow**:
-       - Register (`test3@example.com`/`test123`).
-       - Login, access dashboard.
-       - Edit profile, change password, update settings.
-       - Verify animations, validation.
-     - **Admin Flow**:
-       - Login (`admin@example.com`/`admin123`).
-       - Search users, toggle status.
-       - Verify loading states, user list.
-     - **Expected Outcome**: Forms validate, profile saves, admin functions work, animations visible.
-     - **Issues**:
-       - **Validation**: Check `auth.js`.
-       - **API**: Verify routes, token.
-       - **Port**: Ensure `PORT=3000` in `.env`.
-  5. **Verify Node.js**:
-     - Command: `node --version`.
-     - **Expected Outcome**: `v20.15.1`.
-     - **Fix**: `nvm use 20.15.1`.
+    // Save token for later tests
+    userToken = response.body.token;
+    console.log('User token obtained:', !!userToken);
+  }, 30000);
 
-- **Testing**:
-  - Run: `npm run lint`, `npm test`, Postman, browser, `node --version`.
-  - **Expected Outcome**: No errors, tests pass, app works, Node.js 20.15.1.
-  - **Issues**:
-    - **Lint**: Fix per ESLint or check `.eslintrc.json`.
-    - **Tests**: Debug API/database.
-    - **UI**: Check browser console.
-    - **Node**: Use `nvm`.
+  it('should reject invalid credentials', async () => {
+    console.log('Starting invalid credentials test...');
+    const response = await supertest(fastify.server)
+      .post('/api/login')
+      .send({ email: testEmail, password: 'wrongpassword' });
 
-### Step 13: Set Up CI/CD Pipeline with GitHub Actions
+    console.log('Invalid credentials response status:', response.status);
+    console.log('Invalid credentials response body:', response.body);
 
-- **Why CI/CD?**  
-  CI/CD automates testing and deployment for code quality and efficiency.
+    expect(response.statusCode).toBe(401);
+    expect(response.body.error).toContain('Invalid credentials');
+  }, 30000);
 
-  - **Purpose**:
-    - **Automate Testing**: Runs ESLint/Jest on push.
-    - **Deploy**: Deploys to Render after tests pass.
-    - **Professional Practice**: Teaches real-world workflows.
-  - **Why GitHub Actions?**: Easy, free, integrates with GitHub.
-  - **Scope**: Run linting/tests on `main`, deploy to Render.
+  it('should get current user profile', async () => {
+    console.log('Starting get profile test...');
+    const response = await supertest(fastify.server)
+      .get('/api/me')
+      .set('Authorization', `Bearer ${userToken}`);
 
-- **How**: Create `.github/workflows/ci.yml`.
+    console.log('Get profile response status:', response.status);
+    console.log('Get profile response body:', response.body);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.user.email).toBe(testEmail);
+    expect(response.body.user.passwordHash).toBeUndefined();
+  }, 30000);
+});
+
+describe('User Management Flow', () => {
+  it('should update profile', async () => {
+    console.log('Starting update profile test...');
+    const profileData = {
+      displayName: 'Test User',
+      bio: 'Integration test profile',
+      avatarUrl: 'https://example.com/avatar.png',
+    };
+
+    const response = await supertest(fastify.server)
+      .post('/api/profile')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send(profileData);
+
+    console.log('Update profile response status:', response.status);
+    console.log('Update profile response body:', response.body);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.message).toBe('Profile updated');
+
+    // Verify profile was updated
+    console.log('Verifying profile update...');
+    const meResponse = await supertest(fastify.server)
+      .get('/api/me')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    console.log('Get updated profile response status:', meResponse.status);
+    console.log(
+      'Get updated profile response body profile:',
+      meResponse.body.user.profile
+    );
+
+    expect(meResponse.body.user.profile.displayName).toBe(
+      profileData.displayName
+    );
+    expect(meResponse.body.user.profile.bio).toBe(profileData.bio);
+  }, 30000);
+
+  it('should update settings', async () => {
+    console.log('Starting update settings test...');
+    const settingsData = {
+      theme: 'dark',
+      notifications: false,
+    };
+
+    const response = await supertest(fastify.server)
+      .post('/api/settings')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send(settingsData);
+
+    console.log('Update settings response status:', response.status);
+    console.log('Update settings response body:', response.body);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.message).toBe('Settings updated');
+  }, 30000);
+
+  it('should change password', async () => {
+    console.log('Starting change password test...');
+    const newPassword = 'newpassword123';
+
+    const response = await supertest(fastify.server)
+      .post('/api/password')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ newPassword });
+
+    console.log('Change password response status:', response.status);
+    console.log('Change password response body:', response.body);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.message).toBe('Password updated');
+
+    // Verify by logging in with new password
+    console.log('Verifying password change by logging in...');
+    const loginResponse = await supertest(fastify.server)
+      .post('/api/login')
+      .send({ email: testEmail, password: newPassword });
+
+    console.log('New password login response status:', loginResponse.status);
+    console.log(
+      'New password login response body token exists:',
+      !!loginResponse.body.token
+    );
+
+    expect(loginResponse.statusCode).toBe(200);
+    expect(loginResponse.body.token).toBeDefined();
+  }, 30000);
+});
+
+describe('Admin Operations', () => {
+  it('should get all users (admin only)', async () => {
+    console.log('Starting get all users test...');
+    const response = await supertest(fastify.server)
+      .get('/api/users')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    console.log('Get all users response status:', response.status);
+    console.log(
+      'Get all users response body users count:',
+      response.body.users?.length
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body.users)).toBe(true);
+    expect(response.body.users.length).toBeGreaterThan(0);
+
+    // Should include our test user
+    const testUser = response.body.users.find((u) => u.email === testEmail);
+    console.log('Test user found in users list:', !!testUser);
+
+    expect(testUser).toBeDefined();
+  }, 30000);
+
+  it('should filter users by search', async () => {
+    console.log('Starting filter users test...');
+    const response = await supertest(fastify.server)
+      .get(`/api/users?search=${testEmail}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    console.log('Filter users response status:', response.status);
+    console.log(
+      'Filter users response body users count:',
+      response.body.users?.length
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.users.length).toBe(1);
+    expect(response.body.users[0].email).toBe(testEmail);
+  }, 30000);
+
+  it('should get user by ID (admin only)', async () => {
+    console.log('Starting get user by ID test...');
+    if (!testUserId) {
+      console.warn('testUserId is not defined, skipping test');
+      return;
+    }
+
+    const response = await supertest(fastify.server)
+      .get(`/api/users/${testUserId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    console.log('Get user by ID response status:', response.status);
+    console.log('Get user by ID response body user:', response.body.user);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.user.id).toBe(testUserId);
+    expect(response.body.user.email).toBe(testEmail);
+  }, 30000);
+
+  it('should toggle user active status (admin only)', async () => {
+    console.log('Starting toggle user active test...');
+    if (!testUserId) {
+      console.warn('testUserId is not defined, skipping test');
+      return;
+    }
+
+    const response = await supertest(fastify.server)
+      .patch(`/api/users/${testUserId}/active`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false });
+
+    console.log('Toggle user active response status:', response.status);
+    console.log('Toggle user active response body:', response.body);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.message).toBe('User disabled');
+    expect(response.body.user.is_active).toBe(false);
+
+    // Verify user can't login when disabled
+    console.log('Verifying user cannot login when disabled...');
+    const loginResponse = await supertest(fastify.server)
+      .post('/api/login')
+      .send({ email: testEmail, password: 'newpassword123' });
+
+    console.log('Disabled user login response status:', loginResponse.status);
+    console.log('Disabled user login response body:', loginResponse.body);
+
+    expect(loginResponse.statusCode).toBe(401);
+
+    // Re-enable user
+    console.log('Re-enabling user...');
+    await supertest(fastify.server)
+      .patch(`/api/users/${testUserId}/active`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: true });
+  }, 30000);
+
+  it('should get activity logs (admin only)', async () => {
+    console.log('Starting get activity logs test...');
+    const response = await supertest(fastify.server)
+      .get('/api/logs')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    console.log('Get activity logs response status:', response.status);
+    console.log(
+      'Get activity logs response body logs count:',
+      response.body.logs?.length
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body.logs)).toBe(true);
+
+    // Should include logs for our test user
+    if (testUserId) {
+      const userLogs = response.body.logs.filter(
+        (log) => log.userId === testUserId
+      );
+      console.log('Test user logs found:', userLogs.length);
+
+      expect(userLogs.length).toBeGreaterThan(0);
+    }
+  }, 30000);
+
+  it('should delete a user (admin only)', async () => {
+    console.log('Starting delete user test...');
+    if (!testUserId) {
+      console.warn('testUserId is not defined, skipping test');
+      return;
+    }
+
+    const response = await supertest(fastify.server)
+      .delete(`/api/users/${testUserId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    console.log('Delete user response status:', response.status);
+    console.log('Delete user response body:', response.body);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.message).toContain('deleted successfully');
+
+    // Verify user is gone
+    console.log('Verifying user is deleted...');
+    const userResponse = await supertest(fastify.server)
+      .get(`/api/users/${testUserId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    console.log('Get deleted user response status:', userResponse.status);
+    console.log('Get deleted user response body:', userResponse.body);
+
+    expect(userResponse.statusCode).toBe(404);
+
+    // Clear testUserId since we've deleted it
+    console.log('Clearing testUserId variable');
+    testUserId = null;
+  }, 30000);
+});
+```
+
+- **Running Tests**:
+
+  - **Command**: `npm run test:api`
+  - **Expected Output**:
+
+    ```
+    ✓ tests/api.test.mjs (14 tests) 1068ms
+
+    Test Files  1 passed (1)
+    Tests       14 passed (14)
+    Start at    10:55:20
+    Duration    3.57s
+    ```
+
+  - **Possible Errors**:
+    - `Error: connect ECONNREFUSED`: PostgreSQL is not running.
+    - `Error: expected 200 "OK", got 401 "Unauthorized"`: Invalid token or authentication issue.
+    - `Error: expected 200 "OK", got 404 "Not Found"`: Route not found, check path.
+
+### Step 16: Update CI/CD Pipeline with GitHub Actions
+
+- **Why**: Automate testing, migrations, seeding, and deployment.
+- **How**: Update `ci.yml`.
 - **Code Example** (`.github/workflows/ci.yml`):
 
   ```yaml
-  name: CI/CD for AuthMini V2
+  name: CI/CD for AuthMini V3
 
   on:
     push:
@@ -1911,214 +3274,229 @@ AuthMini V2 extends V1’s single Fastify server, SQLite database, and Alpine.js
   jobs:
     test:
       runs-on: ubuntu-latest
+      services:
+        postgres:
+          image: postgres:13
+          env:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: test_db
+          ports:
+            - 5432:5432
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
 
       steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-
-        - name: Set up Node.js
-          uses: actions/setup-node@v4
+        - uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
           with:
             node-version: '20.15.1'
 
         - name: Install dependencies
           run: npm install
 
-        - name: Run linting
+        - name: Run linter
           run: npm run lint
 
-        - name: Run tests
-          run: npm test
+        - name: Generate Prisma client
+          run: npx prisma generate --schema=db/schema.prisma
+
+        - name: Run migrations
+          run: npx prisma migrate deploy --schema=db/schema.prisma
+          env:
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+
+        - name: Run unit tests
+          run: npm run test:unit
+          env:
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+            JWT_SECRET: test_secret_key
+
+        - name: Run route tests
+          run: npm run test:routes
+          env:
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+            JWT_SECRET: test_secret_key
+
+        - name: Run API tests
+          run: npm run test:api
+          env:
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+            JWT_SECRET: test_secret_key
 
     deploy:
       needs: test
       runs-on: ubuntu-latest
-      if: github.ref == 'refs/heads/main'
 
       steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+        - uses: actions/checkout@v4
 
         - name: Deploy to Render
-          env:
-            RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-            RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
           run: |
             curl -X POST \
-              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
               -H "Content-Type: application/json" \
-              https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys
+              https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys
   ```
 
-- **Explanation**:
+### Step 17: Deploy to Render
 
-  - **Jobs**:
-    - **test**: Runs ESLint, Jest on `main`.
-    - **deploy**: Triggers Render deployment after tests.
-  - **Secrets**:
-    - `RENDER_API_KEY`, `RENDER_SERVICE_ID`: Added in GitHub settings.
-  - **Nuance**:
-    - Node.js 20.15.1 matches `.node-version`.
-    - `authmini.db` in Git ensures admin account, but overwrites on `git pull` (non-ideal; V3 will use persistent database).
-
+- **Why**: Deploy V3 with PostgreSQL for production.
+- **How**: Set up Render services.
 - **Steps**:
-
-  1. Create `.github/workflows/ci.yml`.
-  2. Add secrets in GitHub (`Settings > Secrets and variables > Actions`):
-     - `RENDER_API_KEY` (from Render).
-     - `RENDER_SERVICE_ID` (from Render).
-  3. Commit/push:
-     ```bash
-     git add .
-     git commit -m "Add CI/CD pipeline"
-     git push origin main
-     ```
-  4. Check GitHub Actions (`Actions` tab).
-
-- **Testing**:
-  - Push to `main`.
-  - Monitor GitHub Actions.
-  - **Expected Outcome**: Tests pass, Render deploys.
-  - **Issues**:
-    - **Lint/test failures**: Fix locally.
-    - **Secrets**: Verify `RENDER_API_KEY`, `RENDER_SERVICE_ID`.
-    - **Node**: Ensure `node-version: '20.15.1'`.
-    - **Database**: Note `authmini.db` reset.
-
-### Step 14: Deploy to Render
-
-- **Why Deploy?**  
-  Deployment makes V2 accessible online, teaching cloud hosting.
-
-  - **Purpose**:
-    - **Real-World**: Learn deployment workflows.
-    - **Validate**: Ensure app works in production.
-    - **CI/CD**: Complete pipeline with deployment.
-  - **Why Render?**: Simple, free, supports Node.js 20.15.1.
-  - **Scope**: Deploy via GitHub, use `authmini.db` in Git, support dynamic `PORT`.
-
-- **How**: Upload to GitHub, link to Render.
-- **Steps**:
-
-  1. **Prepare Code**:
-     - Ensure `authmini.db` in `db/` (not in `.gitignore`).
-     - Verify `.node-version`: `20.15.1`.
-     - Verify `package.json`: `"engines": { "node": "20.15.1" }`.
-     - Verify `server.mjs`:
-       ```javascript
-       const port = process.env.PORT || 3000;
-       const host =
-         process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
-       await fastify.listen({ port, host });
-       ```
-  2. **Upload to GitHub**:
-     - **Personal Repository**:
-       ```bash
-       git init
-       git add .
-       git commit -m "AuthMini V2"
-       git branch -M main
-       git remote add origin https://github.com/yourusername/authmini-v2.git
-       git push -u origin main
-       ```
-     - **Clone `voilacode`**:
-       ```bash
-       git clone -b v2 https://github.com/voilacode/authmini.git authmini-v2
-       cd authmini-v2
-       git remote set-url origin https://github.com/yourusername/authmini-v2.git
-       git push -u origin main
-       ```
-  3. **Set Up Render**:
-     - Sign up: [render.com](https://render.com).
-     - Create Web Service, connect GitHub repository.
+  1. Create Render PostgreSQL service:
+     - Log in to Render.
+     - Create a new PostgreSQL database.
+     - Copy the connection string (`DATABASE_URL`).
+  2. Deploy web service:
+     - Create a new Web Service linked to your GitHub repository.
      - Configure:
-       - Name: `authmini-v2`.
-       - Environment: Node.
-       - Branch: `main`.
-       - Build Command: `npm install`.
-       - Start Command: `npm start`.
-     - Environment variables:
-       - `PORT`: `10000` (or blank for dynamic).
-       - `NODE_ENV`: `production`.
-       - `JWT_SECRET`: `openssl rand -base64 32`.
-       - `LOG_LEVEL`: `info`.
+       - **Build Command**: `npm install && npx prisma generate`.
+       - **Start Command**: `npm run migrate && npm run seed && npm start`.
+       - **Environment Variables**:
+         - `PORT`: Leave blank (Render assigns a port).
+         - `NODE_ENV`: `production`.
+         - `JWT_SECRET`: Generate with `openssl rand -base64 32`.
+         - `DATABASE_URL`: Paste connection string from PostgreSQL service.
      - Deploy.
-  4. **Verify**:
-     - Check Render logs.
-     - Access Render URL (e.g., `https://authmini-v2.onrender.com`).
-     - Test APIs/UI (same as Step 12).
-  5. **Automate**:
-     - Ensure `.github/workflows/ci.yml` exists.
-     - Verify GitHub secrets.
-     - Push to `main` for CI/CD.
-
-- **Explanation**:
-
-  - **GitHub**:
-    - Personal repo: Full control.
-    - `voilacode`: Uses `https://github.com/voilacode/authmini/tree/v2`.
-  - **Render**:
-    - Node.js 20.15.1 via `.node-version`, `package.json`.
-    - Dynamic `PORT` (e.g., 10000), `0.0.0.0` for production.
-    - **Cloud Variations**: Render uses `PORT`, `0.0.0.0`; Heroku/AWS may differ (check docs).
-  - **Database**:
-    - `authmini.db` in Git simplifies deployment but overwrites on `git pull` (non-ideal; V3 will use persistent database).
-  - **CI/CD**: Automates deployment after tests.
-
+  3. Add Render API key to GitHub secrets:
+     - Generate a Render API key in Render dashboard.
+     - Add to GitHub repository secrets as `RENDER_API_KEY`.
+     - Add Render service ID as `RENDER_SERVICE_ID`.
 - **Testing**:
-  - Access Render URL.
-  - Run Postman/UI tests.
-  - **Expected Outcome**: App loads, APIs/UI work.
+  - **Steps**:
+    1. Visit Render URL.
+    2. Register a new user.
+    3. Login as admin (`admin@example.com`/`admin123`).
+    4. Verify admin dashboard and CRUD operations work.
+  - **Expected Outcome**: App functions with persistent data.
   - **Issues**:
-    - **Build**: Check Render logs.
-    - **Port**: Verify `server.mjs`.
-    - **Database**: Ensure `authmini.db` seeded.
-    - **Secrets**: Check `JWT_SECRET`.
+    - **503 Service Unavailable**: Check Render logs for build/deploy errors.
+    - **400 Bad Request**: Check environment variables.
+    - **Database errors**: Verify `DATABASE_URL` and migration status.
 
-### Step 15: Conclusion and Next Steps
+### Step 18: Conclusion and Next Steps
 
-- **Summary**:  
-  AuthMini V2 extended V1 with profile management, admin capabilities, UX improvements, service layer, ESLint, Jest, and CI/CD. You’ve learned to:
-
-  - Organize code with `userService.mjs`, `activityService.mjs`.
-  - Enforce quality with ESLint (`no-console` off, `axios`/`Alpine` globals).
-  - Write integration tests with Jest/Supertest.
-  - Perform local checks (linting, tests, manual).
-  - Set up CI/CD with GitHub Actions.
-  - Deploy to Render with Node.js 20.15.1, handling `authmini.db` in Git.
-
+- **Summary**:
+  AuthMini V3 extended V2 with PostgreSQL, Prisma ORM, migrations, seeding, and comprehensive CRUD operations, keeping business logic in services. The new implementation ensures data persistence and provides a robust foundation for user management.
 - **Key Takeaways**:
-
-  - **Service Layer**: Enhances maintainability.
-  - **Testing**: Ensures reliability.
-  - **CI/CD**: Streamlines workflows.
-  - **Database**: Including `authmini.db` in Git is non-ideal; V3 will address this.
-  - **Cloud**: Render’s port/host differs from other providers.
-
-- **What’s Next?**:
-
-  - **AuthMini V3**: Will focus on:
-    - **Persistent Database**: Use PostgreSQL for production-ready storage.
-    - **ORM**: Implement Prisma for type-safe queries.
-    - **Pagination**: Add server-side pagination for user lists/logs.
-    - **Migrations**: Manage schema changes.
-    - **Seeding**: Initialize data consistently.
-    - **Cache**: Use Redis for performance.
-  - **Deepen Skills**:
-    - Add unit tests for services.
-    - Explore other clouds (Heroku, AWS).
-    - Contribute to `https://github.com/voilacode/authmini`.
-  - **Resources**:
-    - 🔗 [Jest](https://jestjs.io/docs/getting-started)
-    - 🔗 [Render](https://render.com/docs)
-    - 🔗 [GitHub Actions](https://docs.github.com/en/actions)
-
-- **Final Notes**:
-  - **Review**: Revisit steps 1–14.
-  - **Experiment**: Add features (e.g., avatar upload).
-  - **Non-Ideal**: `authmini.db` in Git simplifies learning but not for production.
-  - **Feedback**: Share at `https://github.com/voilacode/authmini/issues`.
-
-Congratulations on completing AuthMini V2! You’re ready for V3’s advanced features.
+  - **PostgreSQL**: Persistent, scalable database.
+  - **Prisma**: Simplifies queries with type safety.
+  - **Migrations/Seeding**: Ensure schema and data consistency.
+  - **CRUD Operations**: Complete user management functionality.
+  - **Service Layer**: Maintains organized logic.
+  - **Testing Strategy**: Improved with dedicated test files using Vitest.
+- **What's Next?**:
+  - **AuthMini V4**: Add advanced features like email verification, logging, monitoring.
+  - Explore authentication providers (OAuth), role-based access control.
+  - Contribute to `https://github.com/voilacode/authmini`.
+- **Resources**:
+  - 🔗 [Prisma](https://www.prisma.io/docs/)
+  - 🔗 [PostgreSQL](https://www.postgresql.org/docs/)
+  - 🔗 [Render](https://render.com/docs)
+  - 🔗 [Vitest](https://vitest.dev/guide/)
 
 ---
+
+## Running Tests
+
+AuthMini V3 has a comprehensive testing strategy with three levels:
+
+### 1. Unit Tests
+
+Unit tests focus on individual components like database client, services, etc.
+
+- **Command**: `npm run test:unit`
+- **Files**: `tests/unit/*.test.mjs`
+- **Purpose**: Test isolated components.
+- **Expected Output**:
+
+  ```
+  ✓ tests/unit/db.test.mjs (3 tests) 7ms
+  ✓ tests/unit/userService.test.mjs (11 tests) 689ms
+  ✓ tests/unit/activityService.test.mjs (3 tests) 154ms
+
+  Test Files  3 passed (3)
+  Tests       17 passed (17)
+  Start at    11:05:20
+  Duration    3.45s
+  ```
+
+- **Common Errors**:
+  - `PrismaClientInitializationError`: Check `DATABASE_URL` in `.env`.
+  - `Error importing module`: Check file paths and imports.
+  - `Test timeout`: Database connection issue or slow database response.
+
+### 2. Route Tests
+
+Route tests focus on API route handlers, with mocked services.
+
+- **Command**: `npm run test:routes`
+- **Files**: `tests/routes/*.test.mjs`
+- **Purpose**: Test route handlers and request/response handling.
+- **Expected Output**:
+
+  ```
+  ✓ tests/routes/auth.test.mjs (8 tests) 46ms
+  ✓ tests/routes/users.test.mjs (7 tests) 32ms
+
+  Test Files  2 passed (2)
+  Tests       15 passed (15)
+  Start at    11:15:20
+  Duration    2.23s
+  ```
+
+- **Common Errors**:
+  - `Error: listen EADDRINUSE`: Port conflict, check for running servers.
+  - `Cannot spyOn on a primitive value`: Mocking error, check Vitest setup.
+  - `TokenExpiredError`: Check JWT expiry and mock implementation.
+
+### 3. API Integration Tests
+
+API tests verify the entire system works together.
+
+- **Command**: `npm run test:api`
+- **Files**: `tests/api.test.mjs`
+- **Purpose**: Test complete API flows with actual database.
+- **Expected Output**:
+
+  ```
+  ✓ tests/api.test.mjs (14 tests) 1068ms
+
+  Test Files  1 passed (1)
+  Tests       14 passed (14)
+  Start at    11:25:20
+  Duration    3.57s
+  ```
+
+- **Common Errors**:
+  - `Error: connect ECONNREFUSED`: PostgreSQL is not running.
+  - `Error: expected 200 "OK", got 401 "Unauthorized"`: Authentication issue.
+  - `Error: expected 200 "OK", got 404 "Not Found"`: Route not found.
+
+### Running All Tests
+
+To run all tests:
+
+- **Command**: `npm test`
+- **Expected Output**: All test suites and tests pass.
+- **Environment Setup**:
+  - Ensure PostgreSQL is running.
+  - Check `.env` has valid `DATABASE_URL` and `JWT_SECRET`.
+  - Run migrations and seed: `npm run migrate && npm run seed`.
+
+### Debug Tests
+
+To debug tests:
+
+1. Add `console.log` statements to relevant code.
+2. Run tests with debug flag: `npx vitest run --debug tests/path/to/test.mjs`.
+3. Use Vitest's UI mode: `npx vitest --ui` for visual debugging.
+4. Check test output and logs.
+
+---
+
+This comprehensive learning guide provides a step-by-step approach to extending AuthMini V2 to V3, focusing on PostgreSQL integration, Prisma ORM usage, migrations, seeding, and CRUD operations implementation, complete with dedicated test files for each component using Vitest instead of Jest for improved ESM compatibility.
