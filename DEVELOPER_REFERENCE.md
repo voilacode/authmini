@@ -1,5 +1,3 @@
-I'll create an updated Developer Reference document for AuthMini V3 based on the learning guide and V2 developer reference you provided. Here's the updated document:
-
 # Developer Reference for AuthMini V3
 
 **Version**: 3.0  

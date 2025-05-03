@@ -143,6 +143,176 @@ By the end of this guide, you will:
 
 ---
 
+## Understanding Testing in Modern Development
+
+### Why Testing Matters
+
+Testing is a critical aspect of software development that ensures code quality, reliability, and maintainability. In the context of AuthMini V3, we've implemented a structured testing approach that follows industry best practices and provides developers with confidence in their codebase.
+
+### Testing Philosophy
+
+At its core, testing serves several essential purposes:
+
+- **Verification**: Confirms code works as expected
+- **Regression Prevention**: Ensures new changes don't break existing functionality
+- **Documentation**: Tests serve as executable documentation of expected behavior
+- **Design Feedback**: Well-structured tests often reveal design flaws
+- **Refactoring Safety Net**: Allows confident code changes
+
+### Testing Pyramid
+
+AuthMini V3 follows the "Testing Pyramid" approach popularized by Mike Cohn:
+
+```
+       ▲
+      / \
+     /   \
+    / E2E \
+   /-------\
+  /Integration\
+ /------------\
+/    Unit      \
+-----------------
+```
+
+- **Unit Tests**: Focus on testing individual components in isolation
+- **Integration Tests**: Test how components work together
+- **End-to-End Tests**: Test entire application flows
+
+This pyramid structure suggests having more unit tests (fast, focused) and fewer integration and E2E tests (slower, more complex). This balance provides both speed and confidence.
+
+### Test Types in AuthMini V3
+
+Our testing strategy is comprehensive and multi-layered:
+
+1. **Unit Tests** (`tests/unit/*.test.mjs`):
+
+   - Test individual services, database interactions
+   - Mock external dependencies
+   - Fast execution, high specificity
+   - Example: Testing that `userService.registerUser()` creates a user record
+
+2. **Route Tests** (`tests/routes/*.test.mjs`):
+
+   - Test HTTP endpoints with mocked services
+   - Verify request/response handling
+   - Focus on route logic without database interactions
+   - Example: Testing that `/api/register` returns 201 status code on success
+
+3. **API Integration Tests** (`tests/api.test.mjs`):
+   - Test complete workflows (register → login → update profile)
+   - Use actual database (in test environment)
+   - Validate end-to-end functionality
+   - Example: Testing user registration, login, and profile update as a sequence
+
+### Testing Techniques
+
+AuthMini V3 employs several key testing techniques:
+
+#### 1. Isolation through Mocking
+
+```javascript
+// Example of mocking in route tests (Vitest)
+vi.mock('../../backend/services/userService.mjs', () => ({
+  registerUser: vi.fn().mockResolvedValue({ id: 1 }),
+  loginUser: vi.fn().mockResolvedValue({ token: 'fake-token', user: {...} }),
+}));
+```
+
+This allows testing route handlers without actual service implementation.
+
+#### 2. Fixture Setup
+
+```javascript
+beforeAll(async () => {
+  // Setup test data
+  const result = await registerUser('test-user@example.com', 'password123');
+  testUserId = result.id;
+});
+```
+
+Prepares the test environment with necessary data.
+
+#### 3. Cleanup
+
+```javascript
+afterAll(async () => {
+  // Clean up test data
+  if (testUserId) {
+    await db.user.delete({ where: { id: testUserId } });
+  }
+});
+```
+
+Ensures tests don't affect each other by cleaning up after tests run.
+
+#### 4. Arrange-Act-Assert Pattern
+
+```javascript
+test('should register a new user', async () => {
+  // Arrange
+  const userData = { email: 'new-user@example.com', password: 'password123' };
+
+  // Act
+  const result = await registerUser(userData.email, userData.password);
+
+  // Assert
+  expect(result.id).toBeDefined();
+  expect(logActivity).toHaveBeenCalled();
+});
+```
+
+This clear structure makes tests readable and maintainable.
+
+### Benefits of Our Testing Approach
+
+1. **Confidence in Refactoring**:
+
+   - The shift from SQLite to PostgreSQL is validated by comprehensive tests
+   - Changing database technology is a high-risk operation made safer through testing
+
+2. **Maintainability**:
+
+   - New developers can understand expected behavior by reading tests
+   - Bugs can be reproduced reliably through test cases
+
+3. **Faster Development**:
+
+   - Tests can be run quickly to verify changes
+   - Developers don't need to manually test every scenario
+
+4. **Documentation**:
+   - Tests clearly show how components should be used
+   - New team members can learn from test examples
+
+### Running Tests
+
+AuthMini V3 provides dedicated scripts for each test level:
+
+```bash
+# Run unit tests only
+npm run test:unit
+
+# Run route tests only
+npm run test:routes
+
+# Run API integration tests only
+npm run test:api
+
+# Run all tests
+npm test
+```
+
+This granularity allows developers to run just what they need during development.
+
+### Testing Best Practices Demonstrated
+
+1. **Test Independence**: Each test can run in isolation
+2. **Deterministic Results**: Tests always produce the same result under the same conditions
+3. **Fast Execution**: Unit and route tests run quickly
+4. **Readable Tests**: Clear structure and descriptive names
+5. **Comprehensive Coverage**: Tests cover happy paths and error cases
+
 ## Getting Started: Where to Begin?
 
 AuthMini V3 extends V2's Fastify server, Alpine.js frontend, and CI/CD, replacing SQLite with PostgreSQL. Start by reviewing V2's structure, then follow these steps.
@@ -385,177 +555,7 @@ AuthMini V3 extends V2's Fastify server, Alpine.js frontend, and CI/CD, replacin
 
 ## Backend Implementation
 
-# Step 5: Understanding Testing in Modern Development
-
-## Why Testing Matters
-
-Testing is a critical aspect of software development that ensures code quality, reliability, and maintainability. In the context of AuthMini V3, we've implemented a structured testing approach that follows industry best practices and provides developers with confidence in their codebase.
-
-### Testing Philosophy
-
-At its core, testing serves several essential purposes:
-
-- **Verification**: Confirms code works as expected
-- **Regression Prevention**: Ensures new changes don't break existing functionality
-- **Documentation**: Tests serve as executable documentation of expected behavior
-- **Design Feedback**: Well-structured tests often reveal design flaws
-- **Refactoring Safety Net**: Allows confident code changes
-
-### Testing Pyramid
-
-AuthMini V3 follows the "Testing Pyramid" approach popularized by Mike Cohn:
-
-```
-       ▲
-      / \
-     /   \
-    / E2E \
-   /-------\
-  /Integration\
- /------------\
-/    Unit      \
------------------
-```
-
-- **Unit Tests**: Focus on testing individual components in isolation
-- **Integration Tests**: Test how components work together
-- **End-to-End Tests**: Test entire application flows
-
-This pyramid structure suggests having more unit tests (fast, focused) and fewer integration and E2E tests (slower, more complex). This balance provides both speed and confidence.
-
-### Test Types in AuthMini V3
-
-Our testing strategy is comprehensive and multi-layered:
-
-1. **Unit Tests** (`tests/unit/*.test.mjs`):
-
-   - Test individual services, database interactions
-   - Mock external dependencies
-   - Fast execution, high specificity
-   - Example: Testing that `userService.registerUser()` creates a user record
-
-2. **Route Tests** (`tests/routes/*.test.mjs`):
-
-   - Test HTTP endpoints with mocked services
-   - Verify request/response handling
-   - Focus on route logic without database interactions
-   - Example: Testing that `/api/register` returns 201 status code on success
-
-3. **API Integration Tests** (`tests/api.test.mjs`):
-   - Test complete workflows (register → login → update profile)
-   - Use actual database (in test environment)
-   - Validate end-to-end functionality
-   - Example: Testing user registration, login, and profile update as a sequence
-
-### Testing Techniques
-
-AuthMini V3 employs several key testing techniques:
-
-#### 1. Isolation through Mocking
-
-```javascript
-// Example of mocking in route tests (Vitest)
-vi.mock('../../backend/services/userService.mjs', () => ({
-  registerUser: vi.fn().mockResolvedValue({ id: 1 }),
-  loginUser: vi.fn().mockResolvedValue({ token: 'fake-token', user: {...} }),
-}));
-```
-
-This allows testing route handlers without actual service implementation.
-
-#### 2. Fixture Setup
-
-```javascript
-beforeAll(async () => {
-  // Setup test data
-  const result = await registerUser('test-user@example.com', 'password123');
-  testUserId = result.id;
-});
-```
-
-Prepares the test environment with necessary data.
-
-#### 3. Cleanup
-
-```javascript
-afterAll(async () => {
-  // Clean up test data
-  if (testUserId) {
-    await db.user.delete({ where: { id: testUserId } });
-  }
-});
-```
-
-Ensures tests don't affect each other by cleaning up after tests run.
-
-#### 4. Arrange-Act-Assert Pattern
-
-```javascript
-test('should register a new user', async () => {
-  // Arrange
-  const userData = { email: 'new-user@example.com', password: 'password123' };
-
-  // Act
-  const result = await registerUser(userData.email, userData.password);
-
-  // Assert
-  expect(result.id).toBeDefined();
-  expect(logActivity).toHaveBeenCalled();
-});
-```
-
-This clear structure makes tests readable and maintainable.
-
-### Benefits of Our Testing Approach
-
-1. **Confidence in Refactoring**:
-
-   - The shift from SQLite to PostgreSQL is validated by comprehensive tests
-   - Changing database technology is a high-risk operation made safer through testing
-
-2. **Maintainability**:
-
-   - New developers can understand expected behavior by reading tests
-   - Bugs can be reproduced reliably through test cases
-
-3. **Faster Development**:
-
-   - Tests can be run quickly to verify changes
-   - Developers don't need to manually test every scenario
-
-4. **Documentation**:
-   - Tests clearly show how components should be used
-   - New team members can learn from test examples
-
-### Running Tests
-
-AuthMini V3 provides dedicated scripts for each test level:
-
-```bash
-# Run unit tests only
-npm run test:unit
-
-# Run route tests only
-npm run test:routes
-
-# Run API integration tests only
-npm run test:api
-
-# Run all tests
-npm test
-```
-
-This granularity allows developers to run just what they need during development.
-
-### Testing Best Practices Demonstrated
-
-1. **Test Independence**: Each test can run in isolation
-2. **Deterministic Results**: Tests always produce the same result under the same conditions
-3. **Fast Execution**: Unit and route tests run quickly
-4. **Readable Tests**: Clear structure and descriptive names
-5. **Comprehensive Coverage**: Tests cover happy paths and error cases
-
-# Step 6: Configure Prisma and PostgreSQL
+### Step 5: Configure Prisma and PostgreSQL
 
 - **Why**: Replace SQLite with PostgreSQL using Prisma ORM for type-safe queries.
 - **How**: Define schema, initialize Prisma client.
@@ -700,7 +700,7 @@ This granularity allows developers to run just what they need during development
     - **Connection error**: Verify `DATABASE_URL`.
     - **Migration error**: Check `schema.prisma` syntax.
 
-### Step 7: Implement Database Migrations
+### Step 6: Implement Database Migrations
 
 - **Why**: Migrations ensure consistent schema changes across environments.
 - **How**: Use Prisma's migration tools.
@@ -733,7 +733,7 @@ This granularity allows developers to run just what they need during development
     - `Error validating datasource`: Fix `DATABASE_URL` in `.env`.
     - `Migration failed`: Check `schema.prisma` syntax.
 
-### Step 8: Implement Database Seeding
+### Step 7: Implement Database Seeding
 
 - **Why**: Seeds initial data (e.g., admin, sample users) for consistency.
 - **How**: Create seed script for test data.
@@ -865,7 +865,7 @@ This granularity allows developers to run just what they need during development
     - `Error: connect ECONNREFUSED`: PostgreSQL is not running.
     - `PrismaClientValidationError`: Schema has changed since migration.
 
-# Prisma Studio: Database GUI
+#### Prisma Studio: Database GUI
 
 Before moving on to Step 9, you can use Prisma Studio to visually inspect and manage your database tables. This provides a convenient graphical interface for viewing and modifying data.
 
@@ -882,7 +882,7 @@ This opens a browser interface (usually at http://localhost:5555) where you'll s
 
 This is a great way to verify that your migrations have correctly set up the database schema and that your seed data has been properly inserted before proceeding to implement the user service with CRUD operations
 
-### Step 9: Implement User Service with CRUD Operations
+### Step 8: Implement User Service with CRUD Operations
 
 - **Why**: Provide comprehensive Create, Read, Update, Delete operations for user management.
 - **How**: Update `userService.mjs` with Prisma queries.
@@ -1303,7 +1303,7 @@ This is a great way to verify that your migrations have correctly set up the dat
     - `PrismaClientKnownRequestError`: Database connection issues.
     - `Error: connect ETIMEDOUT`: Database server not responding.
 
-### Step 10: Implement Activity Service
+### Step 9: Implement Activity Service
 
 - **Why**: Provides activity logging for audit purposes.
 - **How**: Update `activityService.mjs` with Prisma.
@@ -1450,7 +1450,7 @@ This is a great way to verify that your migrations have correctly set up the dat
     - `Cannot find module '../../backend/services/activityService.mjs'`: Check file paths.
     - `PrismaClientKnownRequestError`: Database connection issues.
 
-### Step 11: Update Auth Routes
+### Step 10: Update Auth Routes
 
 - **Why**: Routes handle HTTP requests, delegating logic to services.
 - **How**: Update `auth.mjs` to work with the updated services.
@@ -1800,7 +1800,7 @@ This is a great way to verify that your migrations have correctly set up the dat
     - `Cannot find module 'fastify'`: Run `npm install`.
     - `Cannot spyOn on a primitive value`: Verify mocking implementation.
 
-### Step 12: Update User Routes (Admin CRUD)
+### Step 11: Update User Routes (Admin CRUD)
 
 - **Why**: Provides admin-only routes for user management.
 - **How**: Update `users.mjs` with CRUD operations.
@@ -2204,7 +2204,7 @@ This is a great way to verify that your migrations have correctly set up the dat
     - `ReferenceError: jwt is not defined`: Forgot to import or mock JWT.
     - `Error: listen EADDRINUSE`: Port conflict, check test setup.
 
-### Step 13: Update Server Configuration
+### Step 12: Update Server Configuration
 
 - **Why**: Server needs to use updated database connection and serve APIs/frontend.
 - **How**: Update `server.mjs`.
@@ -2273,7 +2273,7 @@ This is a great way to verify that your migrations have correctly set up the dat
   startServer();
   ```
 
-### Step 14: Update Frontend for CRUD Operations
+### Step 13: Update Frontend for CRUD Operations
 
 - **Why**: Frontend needs to support CRUD operations.
 - **How**: Update `index.html` to include functionality for CRUD operations.
@@ -2783,7 +2783,7 @@ Alpine.data('app', app);
 Alpine.start();
 ```
 
-### Step 15: Implement API Integration Tests
+### Step 14: Implement API Integration Tests
 
 - **Why**: Ensure all components work together correctly.
 - **How**: Create comprehensive tests in `api.test.mjs`.
@@ -3257,7 +3257,7 @@ describe('Admin Operations', () => {
     - `Error: expected 200 "OK", got 401 "Unauthorized"`: Invalid token or authentication issue.
     - `Error: expected 200 "OK", got 404 "Not Found"`: Route not found, check path.
 
-### Step 16: Update CI/CD Pipeline with GitHub Actions
+### Step 15: Update CI/CD Pipeline with GitHub Actions
 
 - **Why**: Automate testing, migrations, seeding, and deployment.
 - **How**: Update `ci.yml`.
@@ -3342,7 +3342,7 @@ describe('Admin Operations', () => {
               https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys
   ```
 
-### Step 17: Deploy to Render
+### Step 16: Deploy to Render
 
 - **Why**: Deploy V3 with PostgreSQL for production.
 - **How**: Set up Render services.
@@ -3378,7 +3378,7 @@ describe('Admin Operations', () => {
     - **400 Bad Request**: Check environment variables.
     - **Database errors**: Verify `DATABASE_URL` and migration status.
 
-### Step 18: Conclusion and Next Steps
+### Step 17: Conclusion and Next Steps
 
 - **Summary**:
   AuthMini V3 extended V2 with PostgreSQL, Prisma ORM, migrations, seeding, and comprehensive CRUD operations, keeping business logic in services. The new implementation ensures data persistence and provides a robust foundation for user management.
@@ -3398,104 +3398,6 @@ describe('Admin Operations', () => {
   - 🔗 [PostgreSQL](https://www.postgresql.org/docs/)
   - 🔗 [Render](https://render.com/docs)
   - 🔗 [Vitest](https://vitest.dev/guide/)
-
----
-
-## Running Tests
-
-AuthMini V3 has a comprehensive testing strategy with three levels:
-
-### 1. Unit Tests
-
-Unit tests focus on individual components like database client, services, etc.
-
-- **Command**: `npm run test:unit`
-- **Files**: `tests/unit/*.test.mjs`
-- **Purpose**: Test isolated components.
-- **Expected Output**:
-
-  ```
-  ✓ tests/unit/db.test.mjs (3 tests) 7ms
-  ✓ tests/unit/userService.test.mjs (11 tests) 689ms
-  ✓ tests/unit/activityService.test.mjs (3 tests) 154ms
-
-  Test Files  3 passed (3)
-  Tests       17 passed (17)
-  Start at    11:05:20
-  Duration    3.45s
-  ```
-
-- **Common Errors**:
-  - `PrismaClientInitializationError`: Check `DATABASE_URL` in `.env`.
-  - `Error importing module`: Check file paths and imports.
-  - `Test timeout`: Database connection issue or slow database response.
-
-### 2. Route Tests
-
-Route tests focus on API route handlers, with mocked services.
-
-- **Command**: `npm run test:routes`
-- **Files**: `tests/routes/*.test.mjs`
-- **Purpose**: Test route handlers and request/response handling.
-- **Expected Output**:
-
-  ```
-  ✓ tests/routes/auth.test.mjs (8 tests) 46ms
-  ✓ tests/routes/users.test.mjs (7 tests) 32ms
-
-  Test Files  2 passed (2)
-  Tests       15 passed (15)
-  Start at    11:15:20
-  Duration    2.23s
-  ```
-
-- **Common Errors**:
-  - `Error: listen EADDRINUSE`: Port conflict, check for running servers.
-  - `Cannot spyOn on a primitive value`: Mocking error, check Vitest setup.
-  - `TokenExpiredError`: Check JWT expiry and mock implementation.
-
-### 3. API Integration Tests
-
-API tests verify the entire system works together.
-
-- **Command**: `npm run test:api`
-- **Files**: `tests/api.test.mjs`
-- **Purpose**: Test complete API flows with actual database.
-- **Expected Output**:
-
-  ```
-  ✓ tests/api.test.mjs (14 tests) 1068ms
-
-  Test Files  1 passed (1)
-  Tests       14 passed (14)
-  Start at    11:25:20
-  Duration    3.57s
-  ```
-
-- **Common Errors**:
-  - `Error: connect ECONNREFUSED`: PostgreSQL is not running.
-  - `Error: expected 200 "OK", got 401 "Unauthorized"`: Authentication issue.
-  - `Error: expected 200 "OK", got 404 "Not Found"`: Route not found.
-
-### Running All Tests
-
-To run all tests:
-
-- **Command**: `npm test`
-- **Expected Output**: All test suites and tests pass.
-- **Environment Setup**:
-  - Ensure PostgreSQL is running.
-  - Check `.env` has valid `DATABASE_URL` and `JWT_SECRET`.
-  - Run migrations and seed: `npm run migrate && npm run seed`.
-
-### Debug Tests
-
-To debug tests:
-
-1. Add `console.log` statements to relevant code.
-2. Run tests with debug flag: `npx vitest run --debug tests/path/to/test.mjs`.
-3. Use Vitest's UI mode: `npx vitest --ui` for visual debugging.
-4. Check test output and logs.
 
 ---
 
