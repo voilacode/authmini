@@ -1,4 +1,4 @@
- # Learning Guide for Building AuthMini V4 with TypeScript
+# Learning Guide for Building AuthMini V4 with TypeScript
 
 **Version**: 4.0  
 **Application**: AuthMini V4  
@@ -1084,18 +1084,13 @@ export function validateEnv(): void {
 }
 ```
 
-**Build, Lint, Test**:
+**Build**:
 
-- **Build**: `npx tsc backend/src/config/env.ts --outDir backend/dist/config`
-  - Compiles to `backend/dist/config/env.js`.
-- **Lint**: `npx eslint backend/src/config/env.ts`
-  - Checks style and TypeScript errors.
+- To build the js file run `npm run build` and verify that the corresponding compiled .js file(s) exist in the dist/ directory
 
 ### Step 6: Configure Prisma and PostgreSQL with TypeScript
 
 **Purpose**: Set up PostgreSQL with Prisma for type-safe database access.
-
-**TypeScript Explanation**: PrismaClient uses generics for type-safe queries (e.g., `User` type). Singleton pattern with `PrismaClient` type annotation ensures one instance with explicit typing. JSDoc clarifies usage, enhancing maintainability.
 
 **Code Example** (`backend/db/schema.prisma`):
 
@@ -1118,6 +1113,8 @@ model User {
   role         String   @default("user")
 }
 ```
+
+**TypeScript Explanation**: PrismaClient uses generics for type-safe queries (e.g., `User` type). Singleton pattern with `PrismaClient` type annotation ensures one instance with explicit typing. JSDoc clarifies usage, enhancing maintainability.
 
 **Code Example** (`backend/src/data/prisma-manager.ts`):
 
@@ -1160,81 +1157,107 @@ export function getDb(): PrismaClient {
 initDb();
 ```
 
-**Build, Lint, Test**:
+**Build**:
 
-- **Build**: `npx tsc backend/src/data/prisma-manager.ts --outDir backend/dist/data`
-  - Compiles to `backend/dist/data/prisma-manager.js`.
-- **Lint**: `npx eslint backend/src/data/prisma-manager.ts`
-  - Checks style and TypeScript errors.
-- **Test**: Not directly tested; used in other tests (e.g., user-service tests).
+- To build the js file run `npm run build` and verify that the corresponding compiled .js file(s) exist in the dist/ directory
 
 **Steps**:
 
-1. Create `backend/db/schema.prisma`, `backend/src/data/prisma-manager.ts`.
+1. Create the above files `backend/db/schema.prisma`, `backend/src/data/prisma-manager.ts`.
 2. Set up PostgreSQL: `psql -U postgres -c "DROP DATABASE IF EXISTS authmini;"`, `psql -U postgres -c "CREATE DATABASE authmini;"`.
 3. Update `.env` with `DATABASE_URL`.
 4. Run `npm run prisma:generate`.
 5. Run `npm run migrate:dev -- init`.
 
-### Step 7: Implement Database Seeding
+### Step 7: Seed Database with Initial Data
 
-- **Why**: Seed initial admin user.
-- **How**: Create TypeScript seed script.
-- **Code Example** (`backend/db/seed-data.ts`):
+**Purpose**: Populate the database with initial user data to facilitate testing and development, ensuring a consistent starting point for the AuthMini V4 application.
 
-  ```typescript
-  /**
-   * Database seeding script
-   * Creates initial admin user for testing
-   */
-  import { PrismaClient } from '@prisma/client';
-  import bcrypt from 'bcrypt';
+**Detailed Explanation of Purpose**:
 
-  const prisma = new PrismaClient();
+- **Why Seed Data**: Seeding the database with predefined users (e.g., an admin and a regular user) allows developers to test authentication, authorization, and other features without manually creating users each time. It ensures consistent test data across environments, which is critical for reliable unit and integration tests.
+- **Role in AuthMini V4**: The seed data includes users with different roles (`admin` and `user`) to test role-based access control and authentication flows. This step supports rapid development by providing a pre-populated database for immediate use.
+- **Prisma’s Role**: Prisma is used to execute the seeding script (`seed-data.ts`), leveraging its type-safe client to insert data into the PostgreSQL database. This eliminates the need for direct JavaScript access to the compiled file, as Prisma handles the execution via `npm run seed`.
 
-  /**
-   * Seed the database with initial data
-   * @returns {Promise<void>}
-   */
-  async function main(): Promise<void> {
-    try {
-      console.log('Starting seeding...');
+**TypeScript Usage**:
 
-      // Clean existing users
-      await prisma.user.deleteMany();
+- **Type-Safe Data Insertion**: The script uses Prisma’s generated `PrismaClient` with type annotations (e.g., `PrismaClient` type) to ensure type-safe database operations. The `users` array uses an implicit type inferred from the data structure, aligning with Prisma’s `User` model.
+- **Asynchronous Operations**: TypeScript’s `async/await` syntax with proper return types (`Promise<void>`) ensures type-safe handling of asynchronous database operations. This prevents runtime errors from unhandled promises.
+- **Benefits**: TypeScript catches type mismatches (e.g., incorrect field names or types in the `users` array) during compilation. JSDoc comments enhance code clarity, and type inference reduces boilerplate while maintaining safety.
+- **No Direct JS Access**: The seed script is executed via Prisma’s CLI (`npm run seed`), which uses `ts-node` to run the TypeScript file directly. This avoids the need to compile the file to JavaScript, as it’s not part of the `src` directory and isn’t imported into the application runtime.
 
-      // Create admin user with hashed password
-      const saltRounds = 10;
-      const adminPassword = await bcrypt.hash('admin123', saltRounds);
+**Code Example**:
 
-      await prisma.user.upsert({
-        where: { email: 'admin@example.com' },
-        update: {},
-        create: {
-          email: 'admin@example.com',
-          passwordHash: adminPassword,
-          name: 'Admin',
-          role: 'admin',
-        },
-      });
+```typescript
+/**
+ * Seed database with initial user data
+ * Inserts predefined users for testing and development
+ */
+import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
-      console.log('Seeding completed.');
-    } catch (err) {
-      console.error('Seeding failed:', err);
-      process.exit(1);
-    } finally {
-      await prisma.$disconnect();
-    }
+const prisma = new PrismaClient();
+
+/**
+ * Seed the database with initial users
+ * @returns {Promise<void>} Resolves when seeding is complete
+ */
+async function seed(): Promise<void> {
+  const users = [
+    {
+      email: 'admin@example.com',
+      passwordHash: await bcrypt.hash('admin123', 10),
+      name: 'Admin User',
+      role: 'admin',
+    },
+    {
+      email: 'user@example.com',
+      passwordHash: await bcrypt.hash('user123', 10),
+      name: 'Regular User',
+      role: 'user',
+    },
+  ];
+
+  for (const user of users) {
+    await prisma.user.upsert({
+      where: { email: user.email },
+      update: {},
+      create: user,
+    });
   }
 
-  // Execute the main function
-  main();
-  ```
+  console.log('Database seeded successfully');
+}
 
-- **Steps**:
-  1. Create `backend/db/seed-data.ts`.
-  2. Run `npm run seed`.
-  3. Run `npm run prisma:studio` to check the tables
+/**
+ * Execute seeding and handle errors
+ */
+seed()
+  .catch((error) => {
+    console.error('Seeding failed:', error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+```
+
+**Build Command**: No build required for `backend/db/seed-data.ts`. This file is not part of the `src` directory and is executed directly using Prisma’s `npm run seed` command, which leverages `ts-node` to run the TypeScript file without compilation.
+
+- **Expected Outcome**: Running `npm run seed` executes the script, inserting or updating two users (`admin@example.com` and `user@example.com`) in the database. The console outputs `Database seeded successfully`. You can verify the data using `npx prisma studio` or a database client, where the `User` table will show the seeded users with their respective roles and hashed passwords.
+
+**Steps**:
+
+1. Create `backend/db/seed-data.ts`.
+2. Ensure the database is set up (from Step 6) and `DATABASE_URL` is configured in `.env`.
+3. Run `npm run seed` to execute the seeding script.
+
+**Testing**:
+
+- **Command**: `npm run seed`
+- **Expected Outcome**: The script runs without errors, and the database is populated with two users. You can confirm by running `npm run prisma:studio` and checking the `User` table, which should contain:
+  - `admin@example.com` (role: `admin`, name: `Admin User`).
+  - `user@example.com` (role: `user`, name: `Regular User`).
 
 ### Step 8: Define Shared Types
 

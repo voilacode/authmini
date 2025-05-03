@@ -1,3 +1,8 @@
 node_modules/
 .env
-dev.db
+.env.local
+.env.*.local
+backend/dist/
+frontend/dist/
+*.log
+npm-debug.log*
