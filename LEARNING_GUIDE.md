@@ -70,8 +70,8 @@ AuthMini V3 enhances V2 by introducing **production-ready database practices** t
 - Managing schema with **migrations**.
 - Initializing data with **seeding**.
 - Implementing **CRUD operations**.
-- Building a **comprehensive test** suite..
-- Understanding **test-driven development** principles..
+- Building a **comprehensive test** suite.
+- Understanding **test-driven development** principles.
 
 ### Why Extend V2?
 
@@ -95,26 +95,6 @@ Extending V2:
 
 In V2, `authmini.db` was included in Git, causing data loss on `git pull` (e.g., new users erased). V3 demonstrates this issue and resolves it with PostgreSQL, teaching **production-ready database practices**.
 
-### Why ORM, Migrations, and Seeding?
-
-These concepts are new to many developers and critical for scalable apps:
-
-- **ORM (Object-Relational Mapping)**:
-  - **What**: A tool (Prisma) that maps database tables to JavaScript objects, allowing queries via code (e.g., `prisma.user.findUnique({ where: { email } })`) instead of raw SQL (`SELECT * FROM users WHERE email = ?`).
-  - **Why**: Simplifies queries, reduces errors (e.g., typos in SQL), and provides type safety (e.g., IDE auto-completion).
-  - **Beginner Benefit**: Easier to learn than raw SQL, with error-checking and readable syntax.
-  - **V3 Use**: Prisma replaces V2's `better-sqlite3` queries, ensuring type-safe interactions with PostgreSQL.
-- **Migrations**:
-  - **What**: Scripts that define and apply database schema changes (e.g., creating `User` or `Profile` tables).
-  - **Why**: Tracks schema evolution, ensuring consistency across environments. Without migrations, manual schema changes lead to discrepancies (e.g., local vs. production).
-  - **Beginner Benefit**: Automates schema updates, reducing errors from manual SQL.
-  - **V3 Use**: Prisma migrations replace V2's static `db.mjs` schema, enabling schema versioning.
-- **Seeding**:
-  - **What**: A script to populate the database with initial data (e.g., `admin@example.com`).
-  - **Why**: Ensures consistent starting data for development, testing, and production, replacing V2's manual admin seeding in `db.mjs`.
-  - **Beginner Benefit**: Simplifies setting up test data, especially for testing.
-  - **V3 Use**: Seeds admin and sample users for consistent app behavior.
-
 ### Who Is This Guide For?
 
 Developers who:
@@ -123,23 +103,6 @@ Developers who:
 - Want to learn **PostgreSQL**, **Prisma ORM**, **migrations**, **seeding**, and **CRUD operations**.
 - Seek **scalable database practices** for data management.
 - Need a **structured, incremental** path to advanced systems like **AuthCloud**.
-
----
-
-## Learning Objectives
-
-By the end of this guide, you will:
-
-1. Extend AuthMini V2 to V3, creating a streamlined structure with PostgreSQL and Prisma.
-2. Replace SQLite with **PostgreSQL** for persistent data.
-3. Use **Prisma ORM** for type-safe queries, keeping **business logic** in services.
-4. Implement **migrations** for schema management.
-5. Add **seeding** for consistent data initialization.
-6. Implement comprehensive **CRUD operations**.
-7. Demonstrate V2's **SQLite non-persistence issue**.
-8. Practice test-driven development principles.
-9. Deploy to **Render** with PostgreSQL.
-10. Test APIs with **Postman**, frontend with browser, and automated tests with **Vitest**.
 
 ---
 
