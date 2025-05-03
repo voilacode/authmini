@@ -1,4 +1,4 @@
-name: CI/CD for AuthMini V2
+name: CI/CD for AuthMini V3
 
 on:
   push:
@@ -8,40 +8,69 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20.15.1'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Run linting
+      - name: Run linter
         run: npm run lint
 
-      - name: Run tests
-        run: npm test
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=db/schema.prisma
+
+      - name: Run migrations
+        run: npx prisma migrate deploy --schema=db/schema.prisma
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+          JWT_SECRET: test_secret_key
+
+      - name: Run route tests
+        run: npm run test:routes
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+          JWT_SECRET: test_secret_key
+
+      - name: Run API tests
+        run: npm run test:api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+          JWT_SECRET: test_secret_key
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Deploy to Render
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
           curl -X POST \
-            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
-            https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys
+            https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys
