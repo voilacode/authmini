@@ -3,7 +3,7 @@
  * Registers all API routes
  */
 import { FastifyInstance } from 'fastify';
-import { registerAuthRoutes } from './auth-routes';
+import { registerAuthRoutes } from './auth-routes.js';
 
 /**
  * Register all application routes

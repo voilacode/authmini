@@ -4,13 +4,13 @@
  */
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { getDb } from '../data/prisma-manager';
+import { getDb } from '../data/prisma-manager.js';
 import {
   User,
   UserInput,
   LoginResponse,
   JwtPayload,
-} from '../types/model-types';
+} from '../types/model-types.js';
 
 /**
  * Register a new user

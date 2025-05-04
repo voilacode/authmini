@@ -7,10 +7,10 @@
   },
   "scripts": {
     "start": "node server.js",
-    "build": "npm run build:backend && npm run build:frontend && npm run build:server",
+    "build:frontend": "tsc -p frontend/frontend.tsconfig.json && mkdir -p frontend/dist/css && cp frontend/src/index.html frontend/dist/ && cp -r frontend/src/css/*.css frontend/dist/css/",
     "build:backend": "tsc -p backend/backend.tsconfig.json",
-    "build:frontend": "tsc -p frontend/frontend.tsconfig.json",
     "build:server": "tsc -p tsconfig.json",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:server",
     "lint": "eslint .",
     "test": "vitest run",
     "test:backend": "vitest run backend/tests",

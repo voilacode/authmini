@@ -8,13 +8,13 @@ import {
   loginUser,
   getUsers,
   getUserById,
-} from '../services/user-service';
+} from '../services/user-service.js';
 import {
   authenticate,
   requireAdmin,
   AuthenticatedRequest,
-} from '../middleware/auth-middleware';
-import { ErrorResponse } from '../types/model-types';
+} from '../middleware/auth-middleware.js';
+import { ErrorResponse } from '../types/model-types.js';
 
 /**
  * Request body for user registration
