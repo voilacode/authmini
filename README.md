@@ -1,4 +1,4 @@
-# AuthMini V3
+# AuthMini V3 - Database Practices, Testing Strategies
 
 A production-ready authentication application built on **AuthMini V2**, using **Fastify**, **Alpine.js**, **PostgreSQL**, **Prisma ORM**, and **ES Modules (ESM)**. Designed for developers to learn database best practices, migrations, seeding, and comprehensive testing strategies while maintaining a robust authentication system.
 
