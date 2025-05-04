@@ -1831,8 +1831,21 @@ startServer();
 
 ### Step 13: Unit Testing Backend Services
 
-- **Why**: Verify backend logic with type-safe tests.
-- **How**: Create unit tests for user service.
+For AuthMini V4, we need to test the core functionality of our user service. Here's a simple breakdown of the tests we're implementing:
+
+| Test Case                      | Test Description                           | Expected Outcome                                  |
+| ------------------------------ | ------------------------------------------ | ------------------------------------------------- |
+| Register User                  | Register a new user with valid credentials | User is created with an ID and stored in database |
+| Register with Missing Fields   | Attempt to register with empty name        | Error: "All fields are required"                  |
+| Register with Duplicate Email  | Attempt to register with existing email    | Error: "Email already exists"                     |
+| Login User                     | Login with valid credentials               | Returns token and user data without password hash |
+| Login with Invalid Credentials | Login with wrong password                  | Error: "Invalid credentials"                      |
+| Get User by ID                 | Retrieve existing user by ID               | Returns user object without password hash         |
+| Get Non-existent User          | Retrieve user with invalid ID              | Error: "User not found"                           |
+| Get All Users                  | Get list of all users                      | Returns array of users without password hashes    |
+
+- Each test verifies not only the functional outcome but also ensures type safety by checking that returned objects match our TypeScript interfaces. The tests use a real database connection but mock JWT functionality to focus on testing the core service logic.
+
 - **Code Example** (`backend/tests/unit/user-service.test.ts`):
 
   ```typescript
@@ -1984,8 +1997,24 @@ npx vitest run backend/tests/unit/user-service.test.ts
 
 ### Step 14: Integration Testing Auth Routes
 
-- **Why**: Verify API endpoint behavior with TypeScript.
-- **How**: Create integration tests for auth routes.
+We need to test the complete authentication flow through our API endpoints. Here's a simple breakdown of the integration tests we're implementing:
+
+| Test Case           | Test Description                                | Expected Outcome                                                 |
+| ------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| Register User API   | Send POST request to `/register` with user data | Status 201 and success message; user created in database         |
+| Login User API      | Send POST request to `/login` with credentials  | Status 200 with token and user data; token saved for later tests |
+| Get Current User    | Send GET request to `/me` with auth token       | Status 200 with authenticated user data matching test user       |
+| Unauthorized Access | Send GET request to `/me` without token         | Status 401 (Unauthorized) response                               |
+
+These integration tests verify that:
+
+1. Our API routes correctly handle HTTP requests and responses
+2. Authentication middleware properly validates JWT tokens
+3. Route handlers correctly interact with user services
+4. The complete authentication flow works end-to-end
+
+Unlike unit tests, these integration tests use a real Fastify instance and test the complete request/response cycle, ensuring our TypeScript-based routes function correctly with the rest of the application. The tests create and clean up test data to ensure a consistent starting state for each test run.
+
 - **Code Example** (`backend/tests/integration/auth-routes.test.ts`):
 
   ```typescript
