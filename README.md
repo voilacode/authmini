@@ -1,4 +1,4 @@
-# AuthMini V4
+# AuthMini V4 - Typescript
 
 A production-ready authentication application that builds on **AuthMini V3**, using **TypeScript**, **Fastify**, **Alpine.js**, **PostgreSQL**, **Prisma ORM**, and **ES Modules (ESM)**. Designed for developers to learn **TypeScript integration**, **type safety**, and **basic unit testing** with Vitest, while maintaining a robust authentication system.
 
