@@ -3168,9 +3168,9 @@ This approach allows us to verify our TypeScript implementation works correctly 
 npm run test
 ```
 
-#### Step 20: Conclusion and Next Steps
+### Step 20: Conclusion and Next Steps
 
-##### Summary
+#### Summary
 
 AuthMini V4 successfully transformed V3 into a TypeScript-based application with improved type safety and testing. The application now features strongly-typed components throughout the stack, from database interactions to frontend code, ensuring more reliable and maintainable code.
 
