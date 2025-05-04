@@ -1,4 +1,4 @@
-# AuthMini V1
+# AuthMini V1 - Basic Fullstack App
 
 A minimal full-stack authentication app built with **Fastify**, **Alpine.js**, **SQLite**, and **ES Modules (ESM)**. Designed for beginners to learn full-stack development with a single-server setup.
 
