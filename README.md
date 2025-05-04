@@ -1,4 +1,4 @@
-# AuthMini V2
+# AuthMini V2 - Service Layer, Code Quality, Basic Testing, Deployment
 
 An enhanced full-stack authentication app built on **AuthMini V1**, using **Fastify**, **Alpine.js**, **SQLite**, and **ES Modules (ESM)**. Designed for developers to learn advanced full-stack concepts like code quality, testing, service layers, and CI/CD deployment while extending a minimal authentication system.
 
