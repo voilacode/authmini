@@ -6,6 +6,18 @@ AuthMini serves as a foundational learning path for JavaScript-driven applicatio
 
 The core mission is to equip developers with clean code practices, proper development guidelines, comprehensive testing strategies, and well-documented patterns that can be leveraged by LLMs for code generation. This progressive approach helps developers build enterprise-ready skills through practical implementation.
 
+## Prerequisites
+
+Before diving into the versions of AuthMini, we recommend familiarizing yourself with these essential concepts:
+
+- [JavaScript Essentials for Beginners with Fastify](1_JavaScript_Essentials_for_Beginners_with_Fastify.md) - Core JavaScript concepts and basics of Fastify
+- [Fastify Guide for Beginners](2_Fastify_Guide_for_Beginners.md) - Detailed introduction to the Fastify framework
+- [Alpine Essentials for Beginners](3_Alpine_Essentials_for_Beginners.md) - Frontend JavaScript with Alpine.js
+- [SQL Essentials with SQLite for Beginners](4_SQL_Essentials_with_SQLite_for_Beginners.md) - Database fundamentals with SQLite
+- [Tailwind CSS Essentials for Beginners](5_Tailwind_CSS_Essentials_for_Beginners.md) - Modern CSS styling with Tailwind
+
+These resources will provide the foundational knowledge needed to understand and implement each version of AuthMini effectively.
+
 ## Versions
 
 | Version | Focus                        | Description                                                                    | Link                                                         |
@@ -14,9 +26,9 @@ The core mission is to equip developers with clean code practices, proper develo
 | **V2**  | Service Layer & Code Quality | Separation of concerns, code organization, maintainability practices           | [AuthMini V2](https://github.com/voilacode/authmini/tree/v2) |
 | **V3**  | Database & Testing           | Production-ready data layer, systematic testing approaches, data integrity     | [AuthMini V3](https://github.com/voilacode/authmini/tree/v3) |
 | **V4**  | TypeScript                   | Type safety, interface contracts, scalable architecture patterns               | [AuthMini V4](https://github.com/voilacode/authmini/tree/v4) |
-| **V5**  | --                           | _Under Development_ - Component architecture, state management, UI/UX patterns | Coming Soon                                                  |
-| **V6**  | --                           | _Under Development_ - Robust security implementation, optimization techniques  | Coming Soon                                                  |
-| **V7**  | --                           | _Under Development_ - Automated workflows, infrastructure management           | Coming Soon                                                  |
+| **V5**  | Advanced Frontend            | _Under Development_ - Component architecture, state management, UI/UX patterns | Coming Soon                                                  |
+| **V6**  | API Security & Performance   | _Under Development_ - Robust security implementation, optimization techniques  | Coming Soon                                                  |
+| **V7**  | CI/CD & DevOps               | _Under Development_ - Automated workflows, infrastructure management           | Coming Soon                                                  |
 
 ## Documentation Approach
 
