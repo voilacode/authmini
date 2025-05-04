@@ -888,10 +888,11 @@ AuthMini V4 simplifies V3's features, converts all code to TypeScript, and adds 
       "skipLibCheck": true,
       "strict": true,
       "forceConsistentCasingInFileNames": true,
-      "resolveJsonModule": true
+      "resolveJsonModule": true,
+      "allowJs": true
     },
     "include": ["server.ts"],
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules", "backend", "frontend"]
   }
   ```
 
@@ -913,9 +914,12 @@ AuthMini V4 simplifies V3's features, converts all code to TypeScript, and adds 
       "moduleResolution": "node",
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
-      "sourceMap": true
+      "sourceMap": true,
+      "declaration": true,
+      "declarationMap": true
     },
-    "include": ["src/**/*"]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist", "**/*.test.ts"]
   }
   ```
 
@@ -936,10 +940,13 @@ AuthMini V4 simplifies V3's features, converts all code to TypeScript, and adds 
       "esModuleInterop": true,
       "moduleResolution": "node",
       "skipLibCheck": true,
-      "allowJs": true,
-      "sourceMap": true
+      "forceConsistentCasingInFileNames": true,
+      "sourceMap": true,
+      "declaration": true,
+      "declarationMap": true
     },
-    "include": ["src/**/*"]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist", "**/*.test.ts"]
   }
   ```
 
@@ -961,6 +968,7 @@ AuthMini V4 simplifies V3's features, converts all code to TypeScript, and adds 
       globals: true,
       environment: 'node',
       include: ['**/tests/**/*.test.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**'],
     },
   });
   ```
@@ -1316,6 +1324,8 @@ seed()
   }
   ```
 
+-**Note:** To build the js file run `npm run build:backend` and verify that the corresponding compiled .js file(s) exist in the dist/ directory
+
 ### Step 9: Implement User Service with TypeScript
 
 - **Why**: Handle user logic with type-safe functions.
@@ -1324,152 +1334,150 @@ seed()
 
 ```typescript
 /**
- * User service module
- * Handles user-related business logic including authentication
+ * User service unit tests
+ * Tests user registration, login, and retrieval
  */
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { getDb } from '../data/prisma-manager';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import {
-  User,
-  UserInput,
-  LoginResponse,
-  JwtPayload,
-} from '../types/model-types';
+  registerUser,
+  loginUser,
+  getUsers,
+  getUserById,
+} from '../../src/services/user-service';
+import { initDb, getDb } from '../../src/data/prisma-manager';
+import { UserInput } from '../../src/types/model-types';
 
-/**
- * Register a new user
- * @param {UserInput} input - User registration data
- * @returns {Promise<{id: number}>} Newly created user ID
- * @throws {Error} If email already exists or validation fails
- */
-export async function registerUser(input: UserInput): Promise<{ id: number }> {
-  const db = getDb();
-  const { email, password, name } = input;
-
-  // Validate input
-  if (!email || !password || !name) {
-    throw new Error('All fields are required');
-  }
-
-  // Check for existing user
-  const existingUser = await db.user.findUnique({ where: { email } });
-  if (existingUser) {
-    throw new Error('Email already exists');
-  }
-
-  // Hash password and create user
-  const saltRounds = 10;
-  const passwordHash = await bcrypt.hash(password, saltRounds);
-
-  const user = await db.user.create({
-    data: {
-      email,
-      passwordHash,
-      name,
-      role: 'user',
-    },
-  });
-
-  return { id: user.id };
-}
-
-/**
- * Authenticate a user
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<LoginResponse>} Login response with token and user info
- * @throws {Error} If credentials are invalid
- */
-export async function loginUser(
-  email: string,
-  password: string
-): Promise<LoginResponse> {
-  const db = getDb();
-
-  // Find user by email
-  const user = await db.user.findUnique({ where: { email } });
-  if (!user) {
-    throw new Error('Invalid credentials');
-  }
-
-  // Verify password
-  const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordMatch) {
-    throw new Error('Invalid credentials');
-  }
-
-  // Create JWT payload
-  const payload: JwtPayload = {
-    id: user.id,
-    email: user.email,
-    role: user.role as 'user' | 'admin',
-  };
-
-  // Sign JWT token
-  const token = jwt.sign(payload, process.env.JWT_SECRET!, {
-    expiresIn: '1h',
-  });
-
-  // Return token and user info (excluding password)
+// Mock JWT to avoid actual token generation in tests
+vi.mock('jsonwebtoken', async () => {
   return {
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as 'user' | 'admin', // Add type assertion here
+    default: {
+      sign: vi.fn(() => 'mock-token'),
+      verify: vi.fn(() => ({ id: 1, email: 'test@example.com', role: 'user' })),
     },
+    sign: vi.fn(() => 'mock-token'),
+    verify: vi.fn(() => ({ id: 1, email: 'test@example.com', role: 'user' })),
   };
-}
+});
 
-/**
- * Get all users (for admin use)
- * @returns {Promise<Omit<User, 'passwordHash'>[]>} List of users without passwords
- */
-export async function getUsers(): Promise<Omit<User, 'passwordHash'>[]> {
-  const db = getDb();
-  const users = await db.user.findMany({
-    select: { id: true, email: true, name: true, role: true },
+describe('User Service', () => {
+  // Test database connection
+  let db: ReturnType<typeof getDb>;
+  let testUserId: number;
+
+  // Test user data
+  const testUser: UserInput = {
+    email: 'test@example.com',
+    password: 'password123',
+    name: 'Test User',
+  };
+
+  // Setup before tests run
+  beforeAll(async () => {
+    db = initDb();
+    // Register a test user to use in the tests
+    const result = await registerUser(testUser);
+    testUserId = result.id;
   });
 
-  // Map and convert role to the correct type
-  return users.map((user) => ({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role as 'user' | 'admin',
-  }));
-}
-
-/**
- * Get user by ID
- * @param {number} userId - User ID to find
- * @returns {Promise<Omit<User, 'passwordHash'>>} User without password
- * @throws {Error} If user not found
- */
-export async function getUserById(
-  userId: number
-): Promise<Omit<User, 'passwordHash'>> {
-  const db = getDb();
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, name: true, role: true },
+  // Cleanup after tests complete
+  afterAll(async () => {
+    // Remove test user
+    await db.user.deleteMany({ where: { id: testUserId } });
+    await db.$disconnect();
   });
 
-  if (!user) {
-    throw new Error('User not found');
-  }
+  it('should register a new user', async () => {
+    // Create a unique email for this test
+    const uniqueEmail = `new${Date.now()}@example.com`;
 
-  // Convert role to the correct type
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role as 'user' | 'admin',
-  };
-}
+    const result = await registerUser({
+      email: uniqueEmail,
+      password: 'password123',
+      name: 'New User',
+    });
+
+    // Verify user was created
+    expect(result.id).toBeDefined();
+    expect(typeof result.id).toBe('number');
+
+    // Clean up created user
+    await db.user.delete({ where: { id: result.id } });
+  });
+
+  it('should reject registration with missing fields', async () => {
+    // Missing name
+    await expect(
+      registerUser({
+        email: 'test2@example.com',
+        password: 'password123',
+        name: '',
+      })
+    ).rejects.toThrow('All fields are required');
+  });
+
+  it('should not register duplicate email', async () => {
+    // Attempt to register with existing email
+    await expect(registerUser(testUser)).rejects.toThrow(
+      'Email already exists'
+    );
+  });
+
+  it('should login a user', async () => {
+    // Login with test user credentials
+    const result = await loginUser(testUser.email, testUser.password);
+
+    // Verify token and user data
+    expect(result.token).toBeDefined();
+    expect(result.user.email).toBe(testUser.email);
+    expect(result.user.name).toBe(testUser.name);
+    // Password should not be included in response
+    expect(result.user).not.toHaveProperty('passwordHash');
+  });
+
+  it('should not login with invalid credentials', async () => {
+    // Attempt login with wrong password
+    await expect(loginUser(testUser.email, 'wrongpassword')).rejects.toThrow(
+      'Invalid credentials'
+    );
+  });
+
+  it('should get user by ID', async () => {
+    // Get user by ID
+    const user = await getUserById(testUserId);
+
+    // Verify user data
+    expect(user.id).toBe(testUserId);
+    expect(user.email).toBe(testUser.email);
+    expect(user.name).toBe(testUser.name);
+    // Password should not be included
+    expect(user).not.toHaveProperty('passwordHash');
+  });
+
+  it('should throw error for non-existent user ID', async () => {
+    // Attempt to get non-existent user
+    await expect(getUserById(9999)).rejects.toThrow('User not found');
+  });
+
+  it('should get all users', async () => {
+    // Get all users
+    const users = await getUsers();
+
+    // Verify users array
+    expect(Array.isArray(users)).toBe(true);
+    expect(users.length).toBeGreaterThan(0);
+
+    // Check if our test user is included
+    const testUserInList = users.find((u) => u.email === testUser.email);
+    expect(testUserInList).toBeDefined();
+    expect(testUserInList?.name).toBe(testUser.name);
+
+    // Verify password is not included
+    expect(testUserInList).not.toHaveProperty('passwordHash');
+  });
+});
 ```
+
+-**Note:** To build the js file run `npm run build:backend` and verify that the corresponding compiled .js file(s) exist in the dist/ directory
 
 ### Step 10: Implement Authentication Middleware
 
@@ -1715,6 +1723,8 @@ export async function getUserById(
   }
   ```
 
+  -**Note:** To build the js file run `npm run build:backend` and verify that the corresponding compiled .js file(s) exist in the dist/ directory
+
 - **Code Example** (`backend/src/routes/route-registry.ts`):
 
   ```typescript
@@ -1746,74 +1756,78 @@ export async function getUserById(
 - **How**: Create `server.ts`.
 - **Code Example** (`server.ts`):
 
-  ```typescript
-  /**
-   * Main server entry point
-   * Configures and starts the Fastify server
-   */
-  import Fastify, { FastifyInstance } from 'fastify';
-  import fastifyStatic from '@fastify/static';
-  import path from 'path';
-  import { fileURLToPath } from 'url';
-  import { config } from 'dotenv';
-  import { registerRoutes } from './backend/src/routes/route-registry';
-  import { initDb } from './backend/src/data/prisma-manager';
-  import { validateEnv } from './backend/src/config/env';
+```typescript
+/**
+ * Main server entry point
+ * Configures and starts the Fastify server
+ */
+import Fastify, { FastifyInstance } from 'fastify';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { config } from 'dotenv';
+// Import from compiled backend files instead of source
+import { registerRoutes } from './backend/dist/routes/route-registry.js';
+import { initDb } from './backend/dist/data/prisma-manager.js';
+import { validateEnv } from './backend/dist/config/env.js';
 
-  // Load environment variables
-  config();
+// Load environment variables
+config();
 
-  // Validate environment variables
-  validateEnv();
+// Validate environment variables
+validateEnv();
 
-  // Get current file directory (ESM compatibility)
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
+// Get current file directory (ESM compatibility)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  /**
-   * Start the server with configured routes and services
-   * @returns {Promise<void>}
-   */
-  async function startServer(): Promise<void> {
-    // Create Fastify instance
-    const fastify: FastifyInstance = Fastify({
-      logger: { level: process.env.LOG_LEVEL || 'info' },
+/**
+ * Start the server with configured routes and services
+ * @returns {Promise<void>}
+ */
+async function startServer(): Promise<void> {
+  // Create Fastify instance
+  const fastify: FastifyInstance = Fastify({
+    logger: { level: process.env.LOG_LEVEL || 'info' },
+  });
+
+  // Initialize database connection
+  initDb();
+
+  // Serve static frontend files
+  fastify.register(fastifyStatic, {
+    root: path.join(__dirname, 'frontend/dist'),
+    prefix: '/',
+  });
+
+  // Register API routes
+  fastify.register(registerRoutes, { prefix: '/api' });
+
+  // Serve index.html for all unmatched routes (SPA support)
+  fastify.setNotFoundHandler((request, reply) => {
+    reply.sendFile('index.html');
+  });
+
+  // Start the server
+  const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+  try {
+    const address = await fastify.listen({
+      port: port,
+      host: '0.0.0.0', // Listen on all interfaces
     });
-
-    // Initialize database connection
-    initDb();
-
-    // Serve static frontend files
-    fastify.register(fastifyStatic, {
-      root: path.join(__dirname, 'frontend/dist'),
-      prefix: '/',
-    });
-
-    // Register API routes
-    fastify.register(registerRoutes, { prefix: '/api' });
-
-    // Serve index.html for all unmatched routes (SPA support)
-    fastify.setNotFoundHandler((request, reply) => {
-      reply.sendFile('index.html');
-    });
-
-    // Start the server
-    const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-    try {
-      const address = await fastify.listen({
-        port: port,
-        host: '0.0.0.0', // Listen on all interfaces
-      });
-      console.log(`Server listening on ${address}`);
-    } catch (err) {
-      console.error('Error starting server:', err);
-      process.exit(1);
-    }
+    console.log(`Server listening on ${address}`);
+  } catch (err) {
+    console.error('Error starting server:', err);
+    process.exit(1);
   }
+}
 
-  // Start the server when this script is run directly
-  startServer();
-  ```
+// Start the server when this script is run directly
+startServer();
+```
+
+- Here we are using .js files directly so that the mapping of declartion files is accurate and no errors as we have files at different folder.
+- **Note:** To build the js file run `npm run build:server` and verify that the corresponding compiled .js file in the root folder
 
 ### Step 13: Unit Testing Backend Services
 
@@ -1960,6 +1974,14 @@ export async function getUserById(
   });
   ```
 
+- To test just the user service file, run the following command:
+
+```bash
+npx vitest run backend/tests/unit/user-service.test.ts
+```
+
+- This command will run only the tests in the specified file, giving you faster feedback when working on specific components.
+
 ### Step 14: Integration Testing Auth Routes
 
 - **Why**: Verify API endpoint behavior with TypeScript.
@@ -2100,6 +2122,20 @@ export async function getUserById(
     });
   });
   ```
+
+- To test just the user service file, run the following command:
+
+```bash
+npx vitest run backend/tests/integration/auth-routes.test.ts
+```
+
+- This command will run only the tests in the specified file, giving you faster feedback when working on specific components.
+
+- Now that we've written code for all test files, you can run the full test suite with:
+
+```bash
+npm run test:backend
+```
 
 ---
 

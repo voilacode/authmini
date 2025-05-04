@@ -7,9 +7,10 @@ import fastifyStatic from '@fastify/static';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
-import { registerRoutes } from './backend/src/routes/route-registry';
-import { initDb } from './backend/src/data/prisma-manager';
-import { validateEnv } from './backend/src/config/env';
+// Import from compiled backend files instead of source
+import { registerRoutes } from './backend/dist/routes/route-registry.js';
+import { initDb } from './backend/dist/data/prisma-manager.js';
+import { validateEnv } from './backend/dist/config/env.js';
 
 // Load environment variables
 config();
