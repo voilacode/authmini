@@ -1503,12 +1503,14 @@ export async function getUsers(): Promise<Omit<User, 'passwordHash'>[]> {
   });
 
   // Map and convert role to the correct type
-  return users.map((user) => ({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role as 'user' | 'admin',
-  }));
+  return users.map(
+    (user: { id: number; email: string; name: string; role: string }) => ({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as 'user' | 'admin',
+    })
+  );
 }
 
 /**
