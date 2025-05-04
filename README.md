@@ -1,122 +1,66 @@
-# AuthMini V1
+# AuthMini: Building Blocks for Enterprise JavaScript Applications
 
-A minimal full-stack authentication app built with **Fastify**, **Alpine.js**, **SQLite**, and **ES Modules (ESM)**. Designed for beginners to learn full-stack development with a single-server setup.
+## About AuthMini
 
-**Repository**: [https://github.com/voilacode/authmini](https://github.com/voilacode/authmini)
+AuthMini serves as a foundational learning path for JavaScript-driven applications developed under VoilaCode. It's designed not just as a standalone project, but as a stepping stone toward larger projects like AuthCloud and as an architectural blueprint for future applications.
 
-## Overview
+The core mission is to equip developers with clean code practices, proper development guidelines, comprehensive testing strategies, and well-documented patterns that can be leveraged by LLMs for code generation. This progressive approach helps developers build enterprise-ready skills through practical implementation.
 
-AuthMini V1 allows users to register, log in, log out, and view a dashboard. Admins (`admin@example.com`, `admin123`) can view a list of all users. The app uses a single Fastify server to serve both APIs (`/api/*`) and a frontend SPA (`/`).
+## Versions
 
-## Features
+| Version | Focus                        | Description                                                                    | Link                                                         |
+| ------- | ---------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| **V1**  | Basic Fullstack App          | Core authentication flow, JavaScript fundamentals, API design principles       | [AuthMini V1](https://github.com/voilacode/authmini/tree/v1) |
+| **V2**  | Service Layer & Code Quality | Separation of concerns, code organization, maintainability practices           | [AuthMini V2](https://github.com/voilacode/authmini/tree/v2) |
+| **V3**  | Database & Testing           | Production-ready data layer, systematic testing approaches, data integrity     | [AuthMini V3](https://github.com/voilacode/authmini/tree/v3) |
+| **V4**  | TypeScript                   | Type safety, interface contracts, scalable architecture patterns               | [AuthMini V4](https://github.com/voilacode/authmini/tree/v4) |
+| **V5**  | --                           | _Under Development_ - Component architecture, state management, UI/UX patterns | Coming Soon                                                  |
+| **V6**  | --                           | _Under Development_ - Robust security implementation, optimization techniques  | Coming Soon                                                  |
+| **V7**  | --                           | _Under Development_ - Automated workflows, infrastructure management           | Coming Soon                                                  |
 
-- **User**: Register, log in, log out, view email on dashboard.
-- **Admin**: Log in, view user list (emails, roles, join dates).
-- **Tech**: Fastify (backend), Alpine.js (frontend), SQLite (database), Tailwind CSS (styling).
+## Documentation Approach
 
-## Documentation
+Each version includes:
 
-- [Quick Start and Usage](#setup)
-- [Developer Reference](./DEVELOPER_REFERENCE.md): System architecture, file details, code style, and LLM reference for consistent code generation.
+- **Learning Guide**: Step-by-step code implementation tutorials with detailed explanations
+- **Developer Reference**: In-depth documentation of user flows, architecture patterns, and implementation specifics
+- **API Reference**: Clean guidelines for endpoint usage, request/response formats, and error handling
+- **Testing Documentation**: Comprehensive testing strategies and examples
 
-## Prerequisites
+These documents serve as both learning resources and reference material for LLM-assisted development, ensuring consistent patterns across projects.
 
-- **Node.js**: 14+ (e.g., `v20.17.0`). Check: `node --version`.
-- **npm**: 6+ (e.g., `10.8.2`). Check: `npm --version`.
-- **Git**: To clone the repository.
+## Strategic Value
 
-## Setup
+AuthMini provides:
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/voilacode/authmini.git
-   cd authmini
-   ```
-2. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-   - Requires: `better-sqlite3`, `bcrypt`, `dotenv`, `fastify`, `@fastify/static`, `jsonwebtoken`.
-3. **Configure Environment**:
-   - Create `authmini/.env`:
-     ```
-     PORT=3000
-     JWT_SECRET=your_jwt_secret_here
-     ```
-   - Generate a secret: `openssl rand -base64 32`.
-4. **Start Server**:
-   ```bash
-   npm start
-   ```
-   - Access: `http://localhost:3000` (frontend).
+- **Foundation for Larger Projects**: Core patterns that scale to enterprise applications like AuthCloud
+- **LLM-Ready Documentation**: Well-structured code and docs optimized for AI-assisted development
+- **Architectural Blueprint**: Reusable patterns for new VoilaCode applications
+- **Learning Framework**: Progressive skill building for developers at all levels
+- **Best Practice Reference**: Implementation examples of industry standards and guidelines
 
-## Usage
+## Intended Audience
 
-1. **Frontend**:
-   - Open `http://localhost:3000` in a browser.
-   - **Register**: Enter email (`user@example.com`), password (`user123`) → See “Registration successful.”
-   - **Login**: Use same credentials → User dashboard with email and logout button.
-   - **Admin Login**: Use `admin@example.com`, `admin123` → Admin dashboard with user list.
-   - **Logout**: Returns to login form.
-2. **Backend APIs** (Test with Postman):
-   - **Register**: `POST http://localhost:3000/api/register`
-     ```json
-     { "email": "user@example.com", "password": "user123" }
-     ```
-     - Expect: `201`, `{"message":"User registered"}`
-   - **Login**: `POST http://localhost:3000/api/login`
-     ```json
-     { "email": "admin@example.com", "password": "admin123" }
-     ```
-     - Expect: `200`, `{"token":"...","user":{"email":"...","role":"admin"}}`
-   - **List Users**: `GET http://localhost:3000/api/users`
-     - Header: `Authorization: Bearer <admin_token>`
-     - Expect: `200`, `{"users":[{"id":1,"email":"...","role":"admin","created_at":"..."},...]}`
-   - **Logout**: `POST http://localhost:3000/api/logout`
-     - Expect: `200`, `{"message":"Logged out"}`
+This project serves:
 
-## File Structure
+- Developers building the technical foundation for enterprise applications
+- Teams establishing coding standards and architectural patterns
+- Engineers preparing for larger VoilaCode projects like AuthCloud
+- Technical leads seeking documented examples for team training
+- Developers exploring AI-assisted development practices
 
-- **Root**:
-  - `server.mjs`: Fastify server, serves APIs and frontend.
-  - `package.json`: Dependencies and scripts.
-  - `.env`: Environment variables (`PORT`, `JWT_SECRET`).
-  - `.gitignore`: Excludes files from Git.
-  - `README.md`: Quick start and overview.
-  - `DEVELOPER_REFERENCE.md`: System architecture, file details, code style, LLM reference.
-- **Backend**:
-  - `backend/data/db.mjs`: SQLite database setup, seeds admin user.
-  - `backend/routes/auth.mjs`: Register, login, logout APIs.
-  - `backend/routes/users.mjs`: Admin user list API.
-- **Frontend**:
-  - `frontend/index.html`: SPA entry point with Alpine.js.
-  - `frontend/css/styles.css`: Custom styles for forms and buttons.
-  - `frontend/js/app.js`: Manages user state and navigation.
-  - `frontend/js/auth.js`: Handles login/register form logic.
-- **Database**:
-  - `db/authmini.db`: SQLite database (created on first run).
+## Using AuthMini
 
-## Testing
+1. Start with the Learning Guide to understand implementation steps
+2. Reference the Developer Guide for architectural decisions and patterns
+3. Use API documentation for integration guidelines
+4. Study testing approaches for quality assurance practices
+5. Apply these foundations when contributing to larger VoilaCode projects
 
-1. **Frontend**:
-   - Browser: `http://localhost:3000`.
-   - Console: Check for `app.js loaded`, `auth.js loaded`.
-   - Verify: Login form, dashboards, logout work with proper styling (dark gray forms, white text).
-2. **Backend**:
-   - Postman: Test all APIs (register, login, list users, logout).
-   - Check: `db/authmini.db` contains registered users.
-3. **Troubleshooting**:
-   - **Styles missing**: Clear cache (`Ctrl+Shift+R`), verify `/css/styles.css` loads.
-   - **Scripts fail**: Check console, ensure `/js/app.js`, `/js/auth.js` load.
-   - **API errors**: Verify `.env` (`JWT_SECRET`), token in Postman.
+## Contributing
 
-## Notes
-
-- AuthMini V1 is a learning project to understand Fastify, Alpine.js, and ESM.
-- Uses a single server for simplicity, serving both APIs and frontend.
-- For production, add security (e.g., input validation, HTTPS) and testing.
-- Report issues or contribute at [https://github.com/voilacode/authmini](https://github.com/voilacode/authmini).
+Contributions that align with VoilaCode's architectural vision and coding standards are welcome. Please review our contribution guidelines before submitting.
 
 ## License
 
-MIT
+[MIT License](LICENSE)
