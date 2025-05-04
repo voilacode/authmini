@@ -819,8 +819,26 @@ AuthMini V4 simplifies V3's features, converts all code to TypeScript, and adds 
 
 ### Step 4: Install Dependencies and Configure Environment
 
-- **Why**: Adds TypeScript, Prisma, Vitest, and dependencies.
-- **How**: Configure `package.json`, `tsconfig` files, `.env`, `.gitignore`.
+## AuthMini V4 Scripts Reference
+
+| Category     | Script            | Purpose                                       | When to Use                   |
+| ------------ | ----------------- | --------------------------------------------- | ----------------------------- |
+| **Build**    | `build:frontend`  | Compiles TypeScript and copies HTML/CSS files | When changing frontend code   |
+|              | `build:backend`   | Compiles backend TypeScript                   | When changing backend code    |
+|              | `build:server`    | Compiles server entry point                   | When changing server.ts       |
+|              | `build`           | Runs all build scripts                        | Before deployment or testing  |
+| **Database** | `migrate`         | Deploys database migrations                   | In production environments    |
+|              | `migrate:dev`     | Creates new migrations                        | When changing database schema |
+|              | `seed`            | Populates database with test data             | After fresh installation      |
+|              | `prisma:generate` | Creates TypeScript types from schema          | After changing schema         |
+|              | `prisma:studio`   | Opens visual database editor                  | To inspect/modify data        |
+| **Testing**  | `test`            | Runs all tests                                | Before submitting changes     |
+|              | `test:backend`    | Tests backend only                            | When changing backend         |
+|              | `test:frontend`   | Tests frontend only                           | When changing frontend        |
+|              | `test:watch`      | Runs tests on file changes                    | During active development     |
+| **Running**  | `start`           | Starts the application                        | After building                |
+|              | `dev`             | Development with auto-reload                  | During development            |
+
 - **Code Example** (`package.json`):
 
   ```json
@@ -833,11 +851,10 @@ AuthMini V4 simplifies V3's features, converts all code to TypeScript, and adds 
     },
     "scripts": {
       "start": "node server.js",
-      "build": "npm run build:backend && npm run build:frontend && npm run build:server",
+      "build:frontend": "tsc -p frontend/frontend.tsconfig.json && mkdir -p frontend/dist/css && cp frontend/src/index.html frontend/dist/ && cp -r frontend/src/css/*.css frontend/dist/css/",
       "build:backend": "tsc -p backend/backend.tsconfig.json",
-      "build:frontend": "tsc -p frontend/frontend.tsconfig.json",
       "build:server": "tsc -p tsconfig.json",
-      "lint": "eslint .",
+      "build": "npm run build:backend && npm run build:frontend && npm run build:server",
       "test": "vitest run",
       "test:backend": "vitest run backend/tests",
       "test:frontend": "vitest run frontend/tests",
@@ -1269,8 +1286,28 @@ seed()
 
 ### Step 8: Define Shared Types
 
-- **Why**: Centralize TypeScript types/interfaces.
-- **How**: Create `model-types.ts`.
+Step 8 creates a central TypeScript definitions file that serves as the source of truth for data structures used throughout the application.
+
+#### Implementation Details
+
+| Type/Interface  | Structure                                                    | Purpose                                                             |
+| --------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `User`          | `id`, `email`, `passwordHash`, `name`, and `role` properties | Defines the core user entity structure matching the database schema |
+| `UserInput`     | `email`, `password`, and `name` properties                   | Represents data needed for user registration                        |
+| `LoginResponse` | `token` and `user` properties                                | Defines the structure returned after successful login               |
+| `JwtPayload`    | `id`, `email`, and `role` properties                         | Defines data stored in JWT tokens                                   |
+| `ErrorResponse` | `error` property                                             | Standardizes error response format                                  |
+
+#### Code Highlights
+
+- **Literal Union Type**: `role: 'user' \| 'admin'` restricts role values to only valid options
+- **Type Modification**: `Omit<User, 'passwordHash'>` creates a user type without the password hash
+- **JSDoc Comments**: Each interface includes documentation explaining its purpose
+- **Centralized Location**: All types are in one file for consistent reference
+- **Namespace Organization**: File placed in `backend/src/types/` to clearly separate type definitions
+
+The file's organization into a dedicated types directory makes it easy to find and update shared definitions while ensuring consistent data structures throughout the application.
+
 - **Code Example** (`backend/src/types/model-types.ts`):
 
   ```typescript
@@ -1328,161 +1365,200 @@ seed()
 
 ### Step 9: Implement User Service with TypeScript
 
-- **Why**: Handle user logic with type-safe functions.
-- **How**: Create `user-service.ts`.
+Step 9 implements the core user service that handles all user-related operations with TypeScript type safety.
+
+#### Implementation Details
+
+| Function         | Parameters & Return Type                                     | Implementation                                                                                              |
+| ---------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `registerUser()` | `(userData: UserInput) → Promise<{id: number}>`              | Validates inputs, checks for duplicate emails, hashes password with bcrypt, creates user in database        |
+| `loginUser()`    | `(email: string, password: string) → Promise<LoginResponse>` | Finds user by email, verifies password with bcrypt, generates JWT token, returns user data without password |
+| `getUserById()`  | `(id: number) → Promise<Omit<User, 'passwordHash'>>`         | Retrieves user from database, throws error if not found, removes password hash from response                |
+| `getUsers()`     | `() → Promise<Omit<User, 'passwordHash'>[]>`                 | Retrieves all users from database, removes password hashes from each user                                   |
+
+#### TypeScript Features
+
+- **Typed Prisma Queries**: `prisma.user.findUnique()` returns fully typed user objects
+- **Type Safety for JWT**: Token creation uses typed payload: `jwt.sign(payload: JwtPayload, secret)`
+- **Password Security**: `passwordHash` is never returned by using `Omit<User, 'passwordHash'>`
+- **Parameter Validation**: Function parameters are strictly typed to prevent incorrect data
+- **Error Type Handling**: Error cases use proper TypeScript type narrowing
+- **Promise Typing**: All async operations return properly typed Promises
+
+The service layer acts as a bridge between the database and API routes, providing type-safe operations on user data while enforcing business rules like password security.
+
+- **Note** When using ES modules in TypeScript projects, imports must include the `.js` extension (not `.ts`) because the compiled JavaScript files will be importing other JavaScript files, not the original TypeScript source files.
+
 - **Code Example** (`backend/src/services/user-service.ts`):
 
 ```typescript
 /**
- * User service unit tests
- * Tests user registration, login, and retrieval
+ * User service module
+ * Handles user-related business logic including authentication
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { getDb } from '../data/prisma-manager.js';
 import {
-  registerUser,
-  loginUser,
-  getUsers,
-  getUserById,
-} from '../../src/services/user-service';
-import { initDb, getDb } from '../../src/data/prisma-manager';
-import { UserInput } from '../../src/types/model-types';
+  User,
+  UserInput,
+  LoginResponse,
+  JwtPayload,
+} from '../types/model-types.js';
 
-// Mock JWT to avoid actual token generation in tests
-vi.mock('jsonwebtoken', async () => {
-  return {
-    default: {
-      sign: vi.fn(() => 'mock-token'),
-      verify: vi.fn(() => ({ id: 1, email: 'test@example.com', role: 'user' })),
+/**
+ * Register a new user
+ * @param {UserInput} input - User registration data
+ * @returns {Promise<{id: number}>} Newly created user ID
+ * @throws {Error} If email already exists or validation fails
+ */
+export async function registerUser(input: UserInput): Promise<{ id: number }> {
+  const db = getDb();
+  const { email, password, name } = input;
+
+  // Validate input
+  if (!email || !password || !name) {
+    throw new Error('All fields are required');
+  }
+
+  // Check for existing user
+  const existingUser = await db.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw new Error('Email already exists');
+  }
+
+  // Hash password and create user
+  const saltRounds = 10;
+  const passwordHash = await bcrypt.hash(password, saltRounds);
+
+  const user = await db.user.create({
+    data: {
+      email,
+      passwordHash,
+      name,
+      role: 'user',
     },
-    sign: vi.fn(() => 'mock-token'),
-    verify: vi.fn(() => ({ id: 1, email: 'test@example.com', role: 'user' })),
+  });
+
+  return { id: user.id };
+}
+
+/**
+ * Authenticate a user
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<LoginResponse>} Login response with token and user info
+ * @throws {Error} If credentials are invalid
+ */
+export async function loginUser(
+  email: string,
+  password: string
+): Promise<LoginResponse> {
+  const db = getDb();
+
+  // Find user by email
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user) {
+    throw new Error('Invalid credentials');
+  }
+
+  // Verify password
+  const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+  if (!passwordMatch) {
+    throw new Error('Invalid credentials');
+  }
+
+  // Create JWT payload
+  const payload: JwtPayload = {
+    id: user.id,
+    email: user.email,
+    role: user.role as 'user' | 'admin',
   };
-});
 
-describe('User Service', () => {
-  // Test database connection
-  let db: ReturnType<typeof getDb>;
-  let testUserId: number;
+  // Sign JWT token
+  const token = jwt.sign(payload, process.env.JWT_SECRET!, {
+    expiresIn: '1h',
+  });
 
-  // Test user data
-  const testUser: UserInput = {
-    email: 'test@example.com',
-    password: 'password123',
-    name: 'Test User',
+  // Return token and user info (excluding password)
+  return {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as 'user' | 'admin', // Add type assertion here
+    },
   };
+}
 
-  // Setup before tests run
-  beforeAll(async () => {
-    db = initDb();
-    // Register a test user to use in the tests
-    const result = await registerUser(testUser);
-    testUserId = result.id;
+/**
+ * Get all users (for admin use)
+ * @returns {Promise<Omit<User, 'passwordHash'>[]>} List of users without passwords
+ */
+export async function getUsers(): Promise<Omit<User, 'passwordHash'>[]> {
+  const db = getDb();
+  const users = await db.user.findMany({
+    select: { id: true, email: true, name: true, role: true },
   });
 
-  // Cleanup after tests complete
-  afterAll(async () => {
-    // Remove test user
-    await db.user.deleteMany({ where: { id: testUserId } });
-    await db.$disconnect();
+  // Map and convert role to the correct type
+  return users.map((user) => ({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as 'user' | 'admin',
+  }));
+}
+
+/**
+ * Get user by ID
+ * @param {number} userId - User ID to find
+ * @returns {Promise<Omit<User, 'passwordHash'>>} User without password
+ * @throws {Error} If user not found
+ */
+export async function getUserById(
+  userId: number
+): Promise<Omit<User, 'passwordHash'>> {
+  const db = getDb();
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, role: true },
   });
 
-  it('should register a new user', async () => {
-    // Create a unique email for this test
-    const uniqueEmail = `new${Date.now()}@example.com`;
+  if (!user) {
+    throw new Error('User not found');
+  }
 
-    const result = await registerUser({
-      email: uniqueEmail,
-      password: 'password123',
-      name: 'New User',
-    });
-
-    // Verify user was created
-    expect(result.id).toBeDefined();
-    expect(typeof result.id).toBe('number');
-
-    // Clean up created user
-    await db.user.delete({ where: { id: result.id } });
-  });
-
-  it('should reject registration with missing fields', async () => {
-    // Missing name
-    await expect(
-      registerUser({
-        email: 'test2@example.com',
-        password: 'password123',
-        name: '',
-      })
-    ).rejects.toThrow('All fields are required');
-  });
-
-  it('should not register duplicate email', async () => {
-    // Attempt to register with existing email
-    await expect(registerUser(testUser)).rejects.toThrow(
-      'Email already exists'
-    );
-  });
-
-  it('should login a user', async () => {
-    // Login with test user credentials
-    const result = await loginUser(testUser.email, testUser.password);
-
-    // Verify token and user data
-    expect(result.token).toBeDefined();
-    expect(result.user.email).toBe(testUser.email);
-    expect(result.user.name).toBe(testUser.name);
-    // Password should not be included in response
-    expect(result.user).not.toHaveProperty('passwordHash');
-  });
-
-  it('should not login with invalid credentials', async () => {
-    // Attempt login with wrong password
-    await expect(loginUser(testUser.email, 'wrongpassword')).rejects.toThrow(
-      'Invalid credentials'
-    );
-  });
-
-  it('should get user by ID', async () => {
-    // Get user by ID
-    const user = await getUserById(testUserId);
-
-    // Verify user data
-    expect(user.id).toBe(testUserId);
-    expect(user.email).toBe(testUser.email);
-    expect(user.name).toBe(testUser.name);
-    // Password should not be included
-    expect(user).not.toHaveProperty('passwordHash');
-  });
-
-  it('should throw error for non-existent user ID', async () => {
-    // Attempt to get non-existent user
-    await expect(getUserById(9999)).rejects.toThrow('User not found');
-  });
-
-  it('should get all users', async () => {
-    // Get all users
-    const users = await getUsers();
-
-    // Verify users array
-    expect(Array.isArray(users)).toBe(true);
-    expect(users.length).toBeGreaterThan(0);
-
-    // Check if our test user is included
-    const testUserInList = users.find((u) => u.email === testUser.email);
-    expect(testUserInList).toBeDefined();
-    expect(testUserInList?.name).toBe(testUser.name);
-
-    // Verify password is not included
-    expect(testUserInList).not.toHaveProperty('passwordHash');
-  });
-});
+  // Convert role to the correct type
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as 'user' | 'admin',
+  };
+}
 ```
 
 -**Note:** To build the js file run `npm run build:backend` and verify that the corresponding compiled .js file(s) exist in the dist/ directory
 
 ### Step 10: Implement Authentication Middleware
 
-- **Why**: Centralize JWT verification for protected routes.
-- **How**: Create auth middleware with TypeScript types.
+Step 10 creates middleware functions to handle JWT-based authentication and authorization in TypeScript.
+
+#### Key Implementation Details
+
+| Code Component                   | Implementation Details                                                    | Rationale                                                             |
+| -------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `AuthenticatedRequest` interface | Extends FastifyRequest by adding an optional user property                | Allows TypeScript to understand authenticated requests have user data |
+| `authenticate()` middleware      | Extracts JWT from headers, verifies it, and attaches user data to request | Creates a reusable authentication check for protected routes          |
+| Type assertion `as JwtPayload`   | Converts the decoded JWT to a strongly typed object                       | Ensures decoded token has expected structure                          |
+| Non-null assertion `!`           | Used with JWT_SECRET environment variable                                 | Indicates to TypeScript that this value exists (after validation)     |
+| `requireAdmin()` middleware      | Checks if the authenticated user has admin role                           | Creates separate middleware for role-based authorization              |
+| Literal type `'user' \| 'admin'` | Used for role property                                                    | Prevents unauthorized values in role field                            |
+
+The middleware pattern allows routes to use `preHandler: [authenticate, requireAdmin]` to protect admin-only endpoints with type-safe authentication checks. The interface extension ensures that TypeScript knows which properties are available on the request object after authentication.
+
 - **Code Example** (`backend/src/middleware/auth-middleware.ts`):
 
   ```typescript
@@ -1556,8 +1632,29 @@ describe('User Service', () => {
 
 ### Step 11: Implement Auth Routes
 
-- **Why**: Handle HTTP requests with type-safe routes.
-- **How**: Create auth routes with middleware integration.
+Step 11 implements the Fastify route handlers that expose authentication and user management functionality as HTTP endpoints.
+
+#### Implementation Details
+
+| Endpoint     | Method & Route   | Implementation                                                                                   |
+| ------------ | ---------------- | ------------------------------------------------------------------------------------------------ |
+| Registration | `POST /register` | Validates request body against `RegisterBody` interface, calls `registerUser()` service function |
+| Login        | `POST /login`    | Validates email/password from `LoginBody` interface, calls `loginUser()` service function        |
+| Logout       | `POST /logout`   | Simple handler with no backend state change (token invalidation happens client-side)             |
+| Current User | `GET /me`        | Uses `authenticate` middleware, retrieves user data via `getUserById()`                          |
+| User List    | `GET /users`     | Uses both `authenticate` and `requireAdmin` middleware, calls `getUsers()`                       |
+
+#### TypeScript Features
+
+- **Request Body Typing**: Uses generic type parameters `<{ Body: RegisterBody }>` for type-safe request handling
+- **Response Typing**: Ensures responses match expected interfaces (`ErrorResponse`, etc.)
+- **Middleware Integration**: Typed middleware with `preHandler: [authenticate, requireAdmin]`
+- **Error Type Handling**: Catches and types errors with `catch (err: any)`
+- **Interface-based Validation**: Route handlers validate request data against interfaces
+- **Prefixed Registration**: Routes registered with `/auth` prefix via `registerAuthRoutes` function
+
+The route registry pattern allows for organized API endpoints with consistent prefix and authentication requirements. Each route handler benefits from TypeScript's static typing to ensure requests and responses follow the defined interfaces.
+
 - **Code Example** (`backend/src/routes/auth-routes.ts`):
 
   ```typescript
@@ -1733,7 +1830,7 @@ describe('User Service', () => {
    * Registers all API routes
    */
   import { FastifyInstance } from 'fastify';
-  import { registerAuthRoutes } from './auth-routes';
+  import { registerAuthRoutes } from './auth-routes.js';
 
   /**
    * Register all application routes
@@ -1751,6 +1848,12 @@ describe('User Service', () => {
   ```
 
 ### Step 12: Implement Server Configuration
+
+This step creates the main entry point for our application using TypeScript. The server configuration connects all the components we've built - routes, middleware, and services - into a working application.
+
+Using TypeScript for our server setup provides type safety for the Fastify instance, environment variables, and configuration options. We'll implement proper path handling for static files, API route registration, and error handling - all with type-safe interfaces.
+
+The server configuration also handles important cross-cutting concerns like environment validation and database initialization, ensuring the application starts up correctly with all dependencies properly connected.
 
 - **Why**: Configure Fastify server with TypeScript.
 - **How**: Create `server.ts`.
@@ -1864,10 +1967,20 @@ For AuthMini V4, we need to test the core functionality of our user service. Her
   import { UserInput } from '../../src/types/model-types';
 
   // Mock JWT to avoid actual token generation in tests
-  vi.mock('jsonwebtoken', () => ({
-    sign: vi.fn(() => 'mock-token'),
-    verify: vi.fn(() => ({ id: 1, email: 'test@example.com', role: 'user' })),
-  }));
+  vi.mock('jsonwebtoken', async () => {
+    return {
+      default: {
+        sign: vi.fn(() => 'mock-token'),
+        verify: vi.fn(() => ({
+          id: 1,
+          email: 'test@example.com',
+          role: 'user',
+        })),
+      },
+      sign: vi.fn(() => 'mock-token'),
+      verify: vi.fn(() => ({ id: 1, email: 'test@example.com', role: 'user' })),
+    };
+  });
 
   describe('User Service', () => {
     // Test database connection
@@ -2172,8 +2285,36 @@ npm run test:backend
 
 ### Step 15: Define Frontend Types
 
-- **Why**: Ensure type safety in frontend code.
-- **How**: Create type definitions.
+Step 15 creates TypeScript definitions specifically for the frontend code, ensuring type safety in client-side components and API interactions.
+
+#### Implementation Details
+
+| Type/Interface      | Properties                    | Purpose                                                    |
+| ------------------- | ----------------------------- | ---------------------------------------------------------- |
+| `User`              | `id`, `email`, `name`, `role` | Client-side representation of user (without password hash) |
+| `LoginResponse`     | `token`, `user`               | Structure returned from login API endpoint                 |
+| `RegistrationInput` | `email`, `password`, `name`   | Data sent to registration endpoint                         |
+| `LoginInput`        | `email`, `password`           | Data sent to login endpoint                                |
+| `ApiError`          | `error`                       | Standard error format from API responses                   |
+| `UsersResponse`     | `users`                       | Structure returned when fetching user list                 |
+
+#### TypeScript Features
+
+- **Mirror Backend Types**: Frontend types closely match backend counterparts, but omit server-only properties like `passwordHash`
+- **API Contract**: Types define expected format of API requests and responses
+- **Literal Union Types**: Uses `role: 'user' | 'admin'` to restrict possible role values
+- **Response Typing**: Defines structures for all API responses for consistent handling
+- **Error Handling**: Standardized `ApiError` interface for uniform error processing
+
+These frontend types establish a clear contract between client and server, ensuring that:
+
+1. The frontend knows exactly what data to expect from API responses
+2. Form inputs match what the backend expects to receive
+3. Type checking catches mismatches before runtime
+4. Developers have clear documentation of the data flow between frontend and backend
+
+Unlike backend types that focus on database and service-level structures, these frontend types are specifically tailored for what the client needs to know about API interactions.
+
 - **Code Example** (`frontend/src/js/client-types.ts`):
 
   ```typescript
@@ -2236,8 +2377,35 @@ npm run test:backend
 
 ### Step 16: Implement API Client
 
-- **Why**: Create type-safe API communication.
-- **How**: Build axios-based API client.
+Step 16 creates a TypeScript-based API client that handles all communication between the frontend and backend. This client abstracts away the details of HTTP requests and provides a clean, type-safe interface for the frontend components.
+
+#### Implementation Details
+
+| Function           | Parameters & Return Type                                     | Implementation                                                       |
+| ------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `registerUser()`   | `(userData: RegistrationInput) → Promise<{message: string}>` | Sends POST request to `/api/auth/register` with user data            |
+| `loginUser()`      | `(credentials: LoginInput) → Promise<LoginResponse>`         | Sends POST request to `/api/auth/login`, returns token and user data |
+| `getCurrentUser()` | `() → Promise<{user: User}>`                                 | Sends authenticated GET request to `/api/auth/me`                    |
+| `getUsers()`       | `() → Promise<UsersResponse>`                                | Sends authenticated GET request to `/api/auth/users`                 |
+| `logoutUser()`     | `() → Promise<{message: string}>`                            | Sends POST request to `/api/auth/logout`                             |
+
+#### Helper Functions
+
+| Function           | Purpose                        | Implementation                                                               |
+| ------------------ | ------------------------------ | ---------------------------------------------------------------------------- |
+| `getAuthHeaders()` | Generate authorization headers | Retrieves token from localStorage and formats for Authorization header       |
+| `formatError()`    | Standardize error handling     | Extracts error messages from axios responses or fallbacks to generic message |
+
+#### TypeScript Features
+
+- **Typed API Responses**: All functions return properly typed Promises
+- **Request Body Typing**: Functions take strongly typed parameters for requests
+- **Error Type Handling**: Uses type checking to handle different error formats
+- **Promise Chaining**: Maintains type safety through async operations
+- **Type Guards**: Uses conditional checks and type assertions for error handling
+
+The API client serves as the bridge between frontend components and backend services, providing a clean, typed interface that abstracts away the HTTP details. By centralizing all API calls, we ensure consistent error handling, authentication, and response processing throughout the frontend application.
+
 - **Code Example** (`frontend/src/js/api-client.ts`):
 
   ```typescript
@@ -2245,7 +2413,7 @@ npm run test:backend
    * API client module
    * Provides typed methods for interacting with the backend API
    */
-  import axios, { AxiosError } from 'axios';
+  declare const axios: any;
   import {
     User,
     LoginResponse,
@@ -2253,7 +2421,7 @@ npm run test:backend
     LoginInput,
     ApiError,
     UsersResponse,
-  } from './client-types';
+  } from './client-types.js';
 
   // Base URL for API requests
   const API_BASE_URL = '/api';
@@ -2273,8 +2441,14 @@ npm run test:backend
    * @returns {string} Formatted error message
    */
   function formatError(error: unknown): string {
-    if (error instanceof AxiosError && error.response?.data) {
-      return (error.response.data as ApiError).error || error.message;
+    // Using type checking instead of instanceof for AxiosError
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as any;
+      if (axiosError.response?.data) {
+        return (
+          (axiosError.response.data as ApiError).error || axiosError.message
+        );
+      }
     }
     return error instanceof Error ? error.message : 'Unknown error';
   }
@@ -2369,8 +2543,41 @@ npm run test:backend
 
 ### Step 17: Implement Frontend Application Logic
 
-- **Why**: Create type-safe frontend logic.
-- **How**: Implement Alpine.js components with TypeScript.
+Step 17 implements the client-side application logic using TypeScript with Alpine.js. This step creates the interactive components that users will directly interact with in their browser.
+
+#### Implementation Details
+
+| Component         | Properties & Methods                                           | Implementation                                                    |
+| ----------------- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `app()`           | `user`, `users`, `error`, `init()`, `fetchUsers()`, `logout()` | Main application component managing user state and authentication |
+| `authComponent()` | `email`, `password`, `name`, `error`, `submit()`               | Authentication form component for registration and login          |
+
+#### Main Component Features
+
+- **User Session Management**: Checks for existing login token on initialization
+- **Role-Based Features**: Conditionally loads admin features based on user role
+- **State Management**: Maintains application state (current user, user list, errors)
+- **Authentication Flow**: Handles logout process and redirection
+- **Error Handling**: Captures and displays errors from API operations
+
+#### Auth Component Features
+
+- **Form Handling**: Manages form input state and validation
+- **Dual-Purpose Form**: Handles both registration and login with a single component
+- **API Integration**: Connects to the API client for authentication operations
+- **User Feedback**: Provides error messages for failed operations
+- **Auto-Login**: Automatically logs in after successful registration
+
+#### TypeScript Features
+
+- **Type-Safe API Calls**: Uses typed API client functions for all backend communication
+- **Interface Implementation**: Components follow TypeScript interfaces defined earlier
+- **Type Guards**: Uses type checking for conditional rendering based on user role
+- **Error Typing**: Properly handles and types error responses
+- **Global Type Declaration**: Extends Window interface for Alpine.js global access
+
+The frontend application logic connects the user interface to our backend services through the API client, using TypeScript to ensure type safety throughout the interaction flow.
+
 - **Code Example** (`frontend/src/js/app.ts`):
 
   ```typescript
@@ -2384,13 +2591,15 @@ npm run test:backend
     loginUser,
     logoutUser,
     registerUser,
-  } from './api-client';
-  import { User } from './client-types';
+  } from './api-client.js';
+  import { User } from './client-types.js';
 
-  // Type declaration for Alpine.js
+  // Type declaration for Alpine.js and our global components
   declare global {
     interface Window {
       Alpine: any;
+      app: any;
+      authComponent: any;
     }
   }
 
@@ -2538,6 +2747,10 @@ npm run test:backend
     };
   }
 
+  // Make components globally available for both module and global access
+  window.app = app;
+  window.authComponent = authComponent;
+
   // Register Alpine.js components when DOM loaded
   document.addEventListener('DOMContentLoaded', () => {
     window.Alpine = window.Alpine || {};
@@ -2551,8 +2764,12 @@ npm run test:backend
 
 ### Step 18: Implement Frontend UI
 
-- **Why**: Create a simple UI for testing functionality.
-- **How**: Update HTML and CSS files.
+This step focuses on creating the visual interface that users will interact with. We'll implement a simple HTML and CSS structure that connects to our Alpine.js components.
+
+The frontend UI provides forms for registration and login, displays user information after authentication, and shows the admin dashboard with user list for administrators. Using Alpine.js directives in the HTML, we connect our TypeScript logic to the user interface elements, creating a responsive single-page application.
+
+While keeping the design minimal, we'll ensure the UI properly handles different authentication states and role-based access control, displaying appropriate content based on whether the user is logged in and their permission level.
+
 - **Code Example** (`frontend/src/index.html`):
 
   ```html
@@ -2951,7 +3168,50 @@ This approach allows us to verify our TypeScript implementation works correctly 
 npm run test
 ```
 
----
+### Step 20: Running and Testing the Application
+
+#### Starting the Server
+
+    To run your completed AuthMini V4 application, follow these steps:
+
+    1. **Build the application**:
+
+      ```bash
+      npm run build
+      ```
+
+    2. **Start the server**:
+
+      ```bash
+      npm start
+      ```
+
+    3. You should see a console message like:
+      ```
+      Server listening on http://0.0.0.0:3000
+      ```
+
+#### What to Expect in the Browser
+
+    When you navigate to `http://localhost:3000` in your browser, you'll see:
+
+    1. **Initial View**: Login/Registration form
+      - Fields for email, password, and name
+      - Register and Login buttons
+
+    2. **After Registration/Login**:
+      - For regular users: A welcome message with your name and a logout button
+      - For admin users: An admin dashboard showing a list of all users in the system
+
+    3. **Testing Admin Access**:
+      - Login with `admin@example.com` / `admin123` (seeded in Step 7)
+      - You should see the admin dashboard with user list
+
+    4. **Testing Regular User Access**:
+      - Login with `user@example.com` / `user123` (seeded in Step 7)
+      - You should see only the user dashboard with your name
+
+The application maintains user sessions using JWT tokens stored in localStorage, so you'll remain logged in until you click the logout button or clear your browser storage.
 
 ## Additional Resources
 

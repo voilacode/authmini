@@ -1,5 +1,3 @@
-I'll create a README.md file for AuthMini V4 based on the V3 README file and the additional documentation you've provided. Here's the new README for V4:
-
 # AuthMini V4
 
 A production-ready authentication application that builds on **AuthMini V3**, using **TypeScript**, **Fastify**, **Alpine.js**, **PostgreSQL**, **Prisma ORM**, and **ES Modules (ESM)**. Designed for developers to learn **TypeScript integration**, **type safety**, and **basic unit testing** with Vitest, while maintaining a robust authentication system.
